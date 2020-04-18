@@ -5,11 +5,18 @@
 #include "mbed.h"
 #include "LoRaRadio.h"
 
+#include "HeyMacIdent.h"
 #include "HeyMacLayer.h"
 
 
-HeyMacLayer::HeyMacLayer(LoRaRadio *const radio)
-    : _radio(radio)
+HeyMacLayer::HeyMacLayer
+    (
+    LoRaRadio *const radio,
+    char const * cred_fn
+    )
+    :
+    _radio(radio),
+    _hm_ident(cred_fn)
 {
     radio_events_t mac_clbks;
 

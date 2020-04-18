@@ -7,15 +7,18 @@
 
 #include "LoRaRadio.h"
 
+#include "HeyMacIdent.h"
+
 
 class HeyMacLayer
 {
 public:
-    HeyMacLayer(LoRaRadio * const radio);
+    HeyMacLayer(LoRaRadio *const radio, char const *cred_fn);
     ~HeyMacLayer();
 
 private:
     LoRaRadio *_radio;
+    HeyMacIdent _hm_ident;
 
     // Callbacks for LoRaRadio
     void tx_done_mac_clbk(void);
