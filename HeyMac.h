@@ -3,11 +3,11 @@
 
 enum
 {   // all sizes in octets
-    FILENAME_SZ = 64,
-    FILEBUF_SZ = 2048,
-    SECP384R1_KEY_SZ = 2 * 384 / 8, // Two 384-bit integers define the key
-    LONG_ADDR_SZ = 128 / 8,
-    SHORT_ADDR_SZ = 16 / 8
+    HM_FILENAME_SZ = 64,
+    HM_FILEBUF_SZ = 2048,
+    HM_SECP384R1_KEY_SZ = 2 * 384 / 8, // Two 384-bit integers define the key
+    HM_LONG_ADDR_SZ = 128 / 8,
+    HM_SHORT_ADDR_SZ = 16 / 8
 };
 
 

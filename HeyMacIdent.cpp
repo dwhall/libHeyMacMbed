@@ -15,10 +15,8 @@
 
 
 HeyMacIdent::HeyMacIdent(char const * const cred_fn)
-    :
-    _cred_fn(cred_fn)
 {
-    gen_long_addr();
+    parse_cred_file(cred_fn);
 }
 
 
@@ -32,47 +30,7 @@ hm_retval_t HeyMacIdent::get_long_addr(uint8_t* const r_addr)
 }
 
 
-void HeyMacIdent::gen_long_addr(void)
-{
-    #define FS_MOUNT_NAME "fs"
-
-    SDBlockDevice bd(MBED_CONF_SD_SPI_MOSI, MBED_CONF_SD_SPI_MISO, MBED_CONF_SD_SPI_CLK, MBED_CONF_SD_SPI_CS);
-    FATFileSystem fs(FS_MOUNT_NAME);
-
-    memset(_long_addr, 0, sizeof(_long_addr));
-
-    bd.frequency(8000000); // 8 MHz SPI clock // TODO: make this a build parameter
-
-    if (0 == fs.mount(&bd))
-    {
-        char fn[FILENAME_SZ];
-        FILE *fp;
-
-        // Read credential file into buffer
-        snprintf(fn, sizeof(fn), "/%s/%s", FS_MOUNT_NAME, _cred_fn);
-        fp = fopen(fn, "r");
-        if (fp)
-        {
-            char buf[FILEBUF_SZ];
-            fread(buf, sizeof(buf), 1, fp);
-
-            // Get "pub_key" item from json obj in buffer
-            MbedJSONValue cred;
-            parse(cred, buf);
-            string pub_key_hex = cred["pub_key"].get<std::string>();
-
-            // Convert asciihex key to binary key
-            uint8_t pub_key[SECP384R1_KEY_SZ];
-            hex_to_bin(pub_key_hex, pub_key, SECP384R1_KEY_SZ);
-
-            // Hash pub_key into long_addr
-            hash_key_to_addr(pub_key, _long_addr);
-        }
-    }
-}
-
-
-void HeyMacIdent::hash_key_to_addr(uint8_t const * const pub_key, uint8_t * const r_addr)
+void HeyMacIdent::hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr[HM_LONG_ADDR_SZ])
 {
     enum
     {
@@ -85,7 +43,7 @@ void HeyMacIdent::hash_key_to_addr(uint8_t const * const pub_key, uint8_t * cons
     // Perform SHA512 hash twice on the public key
     mbedtls_sha512_init(&sha_ctx);
     mbedtls_sha512_starts_ret(&sha_ctx, 0);
-    mbedtls_sha512_update_ret(&sha_ctx, pub_key, SECP384R1_KEY_SZ); // once
+    mbedtls_sha512_update_ret(&sha_ctx, pub_key, HM_SECP384R1_KEY_SZ); // once
     mbedtls_sha512_clone(&sha_ctx2, &sha_ctx);
     mbedtls_sha512_finish_ret(&sha_ctx, hash);
 
@@ -95,7 +53,7 @@ void HeyMacIdent::hash_key_to_addr(uint8_t const * const pub_key, uint8_t * cons
     mbedtls_sha512_free(&sha_ctx2);
 
     // Copy the first 128-bits of the 512-bit hash
-    memcpy(r_addr, hash, LONG_ADDR_SZ);
+    memcpy(r_addr, hash, HM_LONG_ADDR_SZ);
 }
 
 
@@ -138,5 +96,51 @@ void HeyMacIdent::hex_to_bin(string const & hex_data, uint8_t *const r_bin, size
     for ( ; i < sz; i++)
     {
         r_bin[i] = 0;
+    }
+}
+
+void HeyMacIdent::parse_cred_file(char const * const cred_fn)
+{
+    #define FS_MOUNT_NAME "fs"
+
+    SDBlockDevice bd(MBED_CONF_SD_SPI_MOSI, MBED_CONF_SD_SPI_MISO, MBED_CONF_SD_SPI_CLK, MBED_CONF_SD_SPI_CS);
+    FATFileSystem fs(FS_MOUNT_NAME);
+
+    bd.frequency(8000000); // 8 MHz SPI clock // TODO: make this a build parameter
+
+    if (0 == fs.mount(&bd))
+    {
+        char fn[HM_FILENAME_SZ];
+        FILE *fp;
+
+        // Open the credential json file
+        snprintf(fn, sizeof(fn), "/%s/%s", FS_MOUNT_NAME, cred_fn);
+        fp = fopen(fn, "r");
+        if (fp)
+        {
+            // Read in and parse the json file
+            char buf[HM_FILEBUF_SZ];
+            fread(buf, sizeof(buf), 1, fp);
+            MbedJSONValue cred;
+            parse(cred, buf);
+
+            // Get "name" item from json obj
+            string json_item = cred["name"].get<std::string>();
+            strncpy(_name, json_item.c_str(), NAME_SZ);
+
+            // Get "tac_id" item from json obj
+            json_item = cred["tac_id"].get<std::string>();
+            strncpy(_tac_id, json_item.c_str(), TAC_ID_SZ);
+
+            // Get "pub_key" item from json obj
+            json_item = cred["pub_key"].get<std::string>();
+
+            // Convert pub key from asciihex key to binary
+            uint8_t pub_key[HM_SECP384R1_KEY_SZ];
+            hex_to_bin(json_item, pub_key, HM_SECP384R1_KEY_SZ);
+
+            // Hash pub_key into long_addr
+            hash_key_to_addr(pub_key, _long_addr);
+        }
     }
 }

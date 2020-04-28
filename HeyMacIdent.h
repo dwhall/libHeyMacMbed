@@ -17,12 +17,16 @@ public:
     hm_retval_t get_long_addr(uint8_t* const r_addr);
 
 private:
-    char const * const _cred_fn;
-    uint8_t _long_addr[LONG_ADDR_SZ];
+    static uint8_t const NAME_SZ = 64;
+    static uint8_t const TAC_ID_SZ = 16;
 
-    void gen_long_addr(void);
-    void hash_key_to_addr(uint8_t const * const pub_key, uint8_t * const r_addr);
+    char _name[NAME_SZ];
+    char _tac_id[TAC_ID_SZ];
+    uint8_t _long_addr[HM_LONG_ADDR_SZ];
+
+    void hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr[HM_LONG_ADDR_SZ]);
     void hex_to_bin(string const & hex_data, uint8_t *const r_bin, size_t sz);
+    void parse_cred_file(char const * const cred_fn);
 };
 
 #endif /* HEYMACIDENT_H_ */
