@@ -18,9 +18,11 @@ public:
 
 private:
     char const * const _cred_fn;
+    uint8_t _long_addr[LONG_ADDR_SZ];
 
+    void gen_long_addr(void);
     void hash_key_to_addr(uint8_t const * const pub_key, uint8_t * const r_addr);
-    void hex_to_bin_512b(string const pub_key, uint8_t *const r_bin);
+    void hex_to_bin(string const & hex_data, uint8_t *const r_bin, size_t sz);
 };
 
 #endif /* HEYMACIDENT_H_ */

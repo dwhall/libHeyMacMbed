@@ -1,0 +1,15 @@
+// The contents of this file must be added to
+// the mbed_app.json of the application
+{
+    "target_overrides": {
+        "*": {
+            "target.components_add": ["SD"],
+            "target.features_add": ["STORAGE"],
+
+            "sd.SPI_MOSI" : "PB_15",
+            "sd.SPI_MISO" : "PB_14",
+            "sd.SPI_CLK"  : "PB_13",
+            "sd.SPI_CS"   : "PB_12"
+        }
+    }
+}
