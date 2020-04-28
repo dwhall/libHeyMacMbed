@@ -79,15 +79,20 @@ void HeyMacIdent::hash_key_to_addr(uint8_t const * const pub_key, uint8_t * cons
         HASH_SZ = 64
     };
     mbedtls_sha512_context sha_ctx;
+    mbedtls_sha512_context sha_ctx2;
     unsigned char hash[HASH_SZ];
 
     // Perform SHA512 hash twice on the public key
     mbedtls_sha512_init(&sha_ctx);
     mbedtls_sha512_starts_ret(&sha_ctx, 0);
     mbedtls_sha512_update_ret(&sha_ctx, pub_key, SECP384R1_KEY_SZ); // once
+    mbedtls_sha512_clone(&sha_ctx2, &sha_ctx);
     mbedtls_sha512_finish_ret(&sha_ctx, hash);
-    mbedtls_sha512_update_ret(&sha_ctx, hash, HASH_SZ); // twice
-    mbedtls_sha512_finish_ret(&sha_ctx, hash);
+
+    mbedtls_sha512_update_ret(&sha_ctx2, hash, HASH_SZ); // twice
+    mbedtls_sha512_finish_ret(&sha_ctx2, hash);
+    mbedtls_sha512_free(&sha_ctx);
+    mbedtls_sha512_free(&sha_ctx2);
 
     // Copy the first 128-bits of the 512-bit hash
     memcpy(r_addr, hash, LONG_ADDR_SZ);
