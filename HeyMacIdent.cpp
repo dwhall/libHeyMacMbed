@@ -99,6 +99,7 @@ void HeyMacIdent::hex_to_bin(string const & hex_data, uint8_t *const r_bin, size
     }
 }
 
+
 void HeyMacIdent::parse_cred_file(char const * const cred_fn)
 {
     #define FS_MOUNT_NAME "fs"
@@ -106,7 +107,7 @@ void HeyMacIdent::parse_cred_file(char const * const cred_fn)
     SDBlockDevice bd(MBED_CONF_SD_SPI_MOSI, MBED_CONF_SD_SPI_MISO, MBED_CONF_SD_SPI_CLK, MBED_CONF_SD_SPI_CS);
     FATFileSystem fs(FS_MOUNT_NAME);
 
-    bd.frequency(8000000); // 8 MHz SPI clock // TODO: make this a build parameter
+    bd.frequency(HM_IDENT_SD_SPI_CLK_HZ);
 
     if (0 == fs.mount(&bd))
     {
