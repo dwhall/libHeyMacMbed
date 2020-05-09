@@ -4,8 +4,10 @@
 #define HEYMACLAYER_H_
 
 #include <stdint.h>
+#include "mbed.h"
+#include "Thread.h"
 
-#include "LoRaRadio.h"
+#include "SX1276_LoRaRadio.h"
 
 #include "HeyMacIdent.h"
 
@@ -13,12 +15,17 @@
 class HeyMacLayer
 {
 public:
-    HeyMacLayer(LoRaRadio *const radio, char const *cred_fn);
+    HeyMacLayer(char const *cred_fn);
     ~HeyMacLayer();
+    void thread_init(void);
+    void thread_start(void);
 
 private:
-    LoRaRadio *_radio;
-    HeyMacIdent _hm_ident;
+    Thread _thread;
+    SX1276_LoRaRadio *_radio; // TODO: make type LoRaRadio
+    HeyMacIdent *_hm_ident;
+
+    void thread_main(void);
 
     // Callbacks for LoRaRadio
     void tx_done_mac_clbk(void);
