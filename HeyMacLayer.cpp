@@ -17,17 +17,17 @@ HeyMacLayer::HeyMacLayer
 // FIXME: the following code works on its own, but uncommenting it will cause the SX1276_LoRaRadio constructor to fail.
 //    _hm_ident = new HeyMacIdent(cred_fn);
     _radio = new SX1276_LoRaRadio(
-        PIN_DEF_LORA_MOSI,
-        PIN_DEF_LORA_MISO,
-        PIN_DEF_LORA_SCK,
-        PIN_DEF_LORA_NSS,
-        PIN_DEF_LORA_RESET,
-        PIN_DEF_LORA_DIO0,
-        PIN_DEF_LORA_DIO1,
-        PIN_DEF_LORA_DIO2,
-        PIN_DEF_LORA_DIO3,
-        PIN_DEF_LORA_DIO4,
-        PIN_DEF_LORA_DIO5);
+        HM_PIN_LORA_MOSI,
+        HM_PIN_LORA_MISO,
+        HM_PIN_LORA_SCK,
+        HM_PIN_LORA_NSS,
+        HM_PIN_LORA_RESET,
+        HM_PIN_LORA_DIO0,
+        HM_PIN_LORA_DIO1,
+        HM_PIN_LORA_DIO2,
+        HM_PIN_LORA_DIO3,
+        HM_PIN_LORA_DIO4,
+        HM_PIN_LORA_DIO5);
 }
 
 HeyMacLayer::~HeyMacLayer()
@@ -72,7 +72,7 @@ void HeyMacLayer::thread_main(void)
     _radio->set_tx_config(
         MODEM_LORA,
         12 /*pwr*/,
-        432550000 /*Hz*/,
+        0 /*fdev (unused)*/,
         1 /*BW*/,   // 1 +7 ==> 250 kHz
         7 /*SF 128*/,
         2 /*CR 4/6*/,
@@ -83,6 +83,13 @@ void HeyMacLayer::thread_main(void)
         0 /*hop prd*/,
         false /*iq inverted*/,
         100 /*ms tx timeout*/);
+    ThisThread::sleep_for(100);
+
+    _radio->set_syncword(0x12);
+    ThisThread::sleep_for(100);
+
+    _radio->set_channel(432550000);
+    ThisThread::sleep_for(100);
 
     for (;;)
         {
