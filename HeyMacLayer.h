@@ -19,6 +19,7 @@ public:
     ~HeyMacLayer();
     void thread_init(void);
     void thread_start(void);
+    void dump_regs(void);
 
 private:
     Thread _thread;

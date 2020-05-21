@@ -97,3 +97,8 @@ void HeyMacLayer::thread_main(void)
         ThisThread::sleep_for(1000);
         }
 }
+
+void HeyMacLayer::dump_regs(void)
+{
+    _radio->dump_regs();
+}
