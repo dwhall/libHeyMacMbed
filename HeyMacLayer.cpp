@@ -7,6 +7,8 @@
 
 #include "HeyMacIdent.h"
 #include "HeyMacLayer.h"
+#include "HeyMacFrame.h"
+#include "HeyMacCmd.h"
 
 
 HeyMacLayer::HeyMacLayer
@@ -68,6 +70,8 @@ void HeyMacLayer::thread_start(void)
 void HeyMacLayer::thread_main(void)
 {
     static uint8_t msg[5] = "ping";
+    HeyMacFrame frame;
+    HeyMacCmd cmd;
 
     _radio->set_tx_config(
         MODEM_LORA,
@@ -91,9 +95,15 @@ void HeyMacLayer::thread_main(void)
     _radio->set_channel(432550000);
     ThisThread::sleep_for(100);
 
+    cmd.cmd_txt(msg, sizeof(msg));
+
+    frame.set_protocol(HM_PIDFLD_CSMA_V0);
+    frame.set_src_addr(0xCA01020304050607); // TODO: use crypto addr from ident on SD card
+    frame.set_payld(cmd);
+
     for (;;)
-        {
-        _radio->send(msg, sizeof(msg));
+    {
+        _radio->send(frame.get_ref(), frame.get_sz());
         ThisThread::sleep_for(1000);
         }
 }
