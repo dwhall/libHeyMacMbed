@@ -1,5 +1,7 @@
 /* Copyright 2020 Dean Hall.  See LICENSE for details. */
 /*
+https://github.com/dwhall/HeyMac/blob/master/docs/HeyMacProtocol.md
+
 HeyMac is a flexible frame definition and communication protocol
 designed to carry Data Link (Layer 2) and Network (Layer 3) frames
 between small payload radio modems such as the Semtech SX127x.

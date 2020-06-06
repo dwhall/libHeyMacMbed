@@ -16,7 +16,7 @@
 
 HeyMacIdent::HeyMacIdent(char const * const cred_fn)
 {
-    parse_cred_file(cred_fn);
+    strncpy(_cred_fn, cred_fn, sizeof(_cred_fn));
 }
 
 
@@ -100,22 +100,28 @@ void HeyMacIdent::hex_to_bin(string const & hex_data, uint8_t *const r_bin, size
 }
 
 
-void HeyMacIdent::parse_cred_file(char const * const cred_fn)
+void HeyMacIdent::parse_cred_file(void)
 {
-    #define FS_MOUNT_NAME "fs"
+#define FS_MOUNT_NAME "fs"
 
     SDBlockDevice bd(MBED_CONF_SD_SPI_MOSI, MBED_CONF_SD_SPI_MISO, MBED_CONF_SD_SPI_CLK, MBED_CONF_SD_SPI_CS);
     FATFileSystem fs(FS_MOUNT_NAME);
+    char fn[HM_FILENAME_SZ];
 
     bd.frequency(HM_IDENT_SD_SPI_CLK_HZ);
 
-    if (0 == fs.mount(&bd))
+    // If no SD/FAT FS is available, use spoof credentials
+    // TODO: Find way to randomize values.  Warn user?
+    if (0 != fs.mount(&bd))
     {
-        char fn[HM_FILENAME_SZ];
+        _spoof();
+    }
+    else
+    {
         FILE *fp;
 
         // Open the credential json file
-        snprintf(fn, sizeof(fn), "/%s/%s", FS_MOUNT_NAME, cred_fn);
+        snprintf(fn, sizeof(fn), "/" FS_MOUNT_NAME "/%s", _cred_fn);
         fp = fopen(fn, "r");
         if (fp)
         {
@@ -144,4 +150,18 @@ void HeyMacIdent::parse_cred_file(char const * const cred_fn)
             hash_key_to_addr(pub_key, _long_addr);
         }
     }
+}
+
+/**
+ * Spoof identity values
+ *
+ * This is handy during testing if a cred.json file is not available
+ */
+void HeyMacIdent::_spoof(void)
+{
+    static uint8_t const spoof_addr[HM_LONG_ADDR_SZ] = {0xFD, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F};
+
+    strcpy(_name, "Dean Hall");
+    strcpy(_tac_id, "KC4KSU-491");
+    memcpy(_long_addr, spoof_addr, sizeof(spoof_addr));
 }

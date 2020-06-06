@@ -17,25 +17,24 @@ class HeyMacLayer
 public:
     HeyMacLayer(char const *cred_fn);
     ~HeyMacLayer();
-    void thread_init(void);
     void thread_start(void);
     void dump_regs(void);
 
 private:
-    Thread _thread;
+    Thread *_thread;
     SX1276_LoRaRadio *_radio; // TODO: make type LoRaRadio
     HeyMacIdent *_hm_ident;
 
-    void thread_main(void);
+    void _main(void);
 
     // Callbacks for LoRaRadio
-    void tx_done_mac_clbk(void);
-    void tx_timeout_mac_clbk(void);
-    void rx_done_mac_clbk(uint8_t const *payload, uint16_t size, int16_t rssi, int8_t snr);
-    void rx_timeout_mac_clbk(void);
-    void rx_error_mac_clbk(void);
-    void fhss_change_channel_mac_clbk(uint8_t current_channel);
-    void cad_done_mac_clbk(bool channel_busy);
+    void _tx_done_mac_clbk(void);
+    void _tx_timeout_mac_clbk(void);
+    void _rx_done_mac_clbk(uint8_t const *payload, uint16_t size, int16_t rssi, int8_t snr);
+    void _rx_timeout_mac_clbk(void);
+    void _rx_error_mac_clbk(void);
+    void _fhss_change_channel_mac_clbk(uint8_t current_channel);
+    void _cad_done_mac_clbk(bool channel_busy);
 };
 
 #endif /* HEYMACLAYER_H_ */
