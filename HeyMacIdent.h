@@ -14,7 +14,7 @@ public:
     HeyMacIdent(char const * const cred_fn);
     ~HeyMacIdent();
 
-    hm_retval_t get_long_addr(uint8_t* const r_addr);
+    uint64_t get_long_addr(void);
     void parse_cred_file(void);
 
 private:

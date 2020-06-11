@@ -24,9 +24,11 @@ HeyMacIdent::~HeyMacIdent()
 {}
 
 
-hm_retval_t HeyMacIdent::get_long_addr(uint8_t* const r_addr)
+uint64_t HeyMacIdent::get_long_addr(void)
 {
-    return HM_RET_NOT_IMPL;
+    uint64_t addr;
+    memcpy(&addr, _long_addr, sizeof(addr)); // FIXME: endianness
+    return addr;
 }
 
 

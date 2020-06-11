@@ -5,23 +5,21 @@
 
 #include <stdint.h>
 #include "mbed.h"
-#include "Thread.h"
+#include "AThread.h"
 
 #include "SX1276_LoRaRadio.h"
 
 #include "HeyMacIdent.h"
 
 
-class HeyMacLayer
+class HeyMacLayer: public AThread
 {
 public:
     HeyMacLayer(char const *cred_fn);
     ~HeyMacLayer();
-    void thread_start(void);
     void dump_regs(void);
 
 private:
-    Thread *_thread;
     SX1276_LoRaRadio *_radio; // TODO: make type LoRaRadio
     HeyMacIdent *_hm_ident;
 

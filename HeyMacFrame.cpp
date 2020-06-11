@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "HeyMac.h"
 #include "HeyMacFrame.h"
 
 
@@ -25,25 +26,35 @@ enum
     FCTL_BIT_X = 1 << 7,    // Extended frame
 };
 
-HeyMacFrame::HeyMacFrame(void)
+
+HeyMacFrame::HeyMacFrame()
 {
-    _buf[BUF_IDX_PID] = 0;
-    _buf[BUF_IDX_FCTL] = 0;
-    _payld_offset = 0;
-    _payld_sz = 0;
-    _mic_sz = 0;
-    _rxd_sz = 0;
+    uint8_t *buf = g_frmbuf_pool.alloc();
+    HeyMacFrame(buf, 0);
 }
+
 
 HeyMacFrame::HeyMacFrame(uint8_t * buf, uint8_t sz)
 {
+    // TODO: assert if buf is nullptr
+    _buf = buf;
+    if(sz == 0)
+        {
+        _buf[BUF_IDX_PID] = 0;
+        _buf[BUF_IDX_FCTL] = 0;
+        }
     _payld_offset = 0;
     _payld_sz = 0;
     _mic_sz = 0;
-
-    memcpy(_buf, buf, sz);
     _rxd_sz = sz;
 }
+
+
+HeyMacFrame::~HeyMacFrame()
+{
+    g_frmbuf_pool.free(_buf);
+}
+
 
 uint8_t *HeyMacFrame::get_ref(void)
 {
@@ -205,7 +216,7 @@ bool HeyMacFrame::set_payld(uint8_t * payld, uint8_t sz)
         offset += (_buf[BUF_IDX_FCTL] & FCTL_BIT_L) ? 8 : 2;
     }
 
-    if ((offset + sz) < FRAME_SZ_MAX)
+    if ((offset + sz) < HM_FRAME_SZ)
     {
         memcpy(&_buf[offset], payld, sz);
         _payld_offset = offset;
@@ -245,7 +256,7 @@ bool HeyMacFrame::set_multihop(uint8_t hops, uint16_t tx_addr)
     {
         // check for available space
         mhop_sz = (_buf[BUF_IDX_FCTL] & FCTL_BIT_L) ? 1 + 8 : 1 + 2;
-        if ((_payld_offset + _payld_sz + _mic_sz + mhop_sz) <= FRAME_SZ_MAX)
+        if ((_payld_offset + _payld_sz + _mic_sz + mhop_sz) <= HM_FRAME_SZ)
         {
             // append Hops, TxAddr fields
             offset = _payld_offset + _payld_sz + _mic_sz;
@@ -284,7 +295,7 @@ bool HeyMacFrame::set_multihop(uint8_t hops, uint64_t tx_addr)
     {
         // check for available space
         mhop_sz = (_buf[BUF_IDX_FCTL] & FCTL_BIT_L) ? 1 + 8 : 1 + 2;
-        if ((_payld_offset + _payld_sz + _mic_sz + mhop_sz) <= FRAME_SZ_MAX)
+        if ((_payld_offset + _payld_sz + _mic_sz + mhop_sz) <= HM_FRAME_SZ)
         {
             // append Hops, TxAddr fields
             offset = _payld_offset + _payld_sz + _mic_sz;

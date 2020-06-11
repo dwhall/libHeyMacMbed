@@ -1,76 +1,20 @@
 /* Copyright 2020 Dean Hall.  See LICENSE for details. */
 /*
+Reference:
+
 https://github.com/dwhall/HeyMac/blob/master/docs/HeyMacProtocol.md
-
-HeyMac is a flexible frame definition and communication protocol
-designed to carry Data Link (Layer 2) and Network (Layer 3) frames
-between small payload radio modems such as the Semtech SX127x.
-HeyMac is distilled from and incompatible with IEEE 802.15.4.
-
-HeyMac offers 16- and 64-bit addressing, multi-network and multi-hop capabilities.
-Extensions for cryptographic authentication and encryption are possible.
-
-The HeyMac frame is very dynamic.  Only the first two fields, Protocol ID
-and Frame Control, are required.  The Frame Control field defines which
-of the other fields are present.  The length of a HeyMac frame
-MUST be conveyed by the physical layer.
-HeyMac uses LoRa's Explicit Header mode to convey the physical frame length.
-
-Frame authentication and encryption are each optional.
-If both signing and encryption take place, signing is done first
-and then the signature is encrypted.  The following diagram shows the order
-of the HeyMac frame fields and which fields are covered by
-authentication and which fields are encrypted.
-The topmost field in the diagram is transmitted first.
-
-    +----+----+----+----+----+----+----+----+---+---+
-    |  Protocol ID                (1 octet) | C |   |
-    +----+----+----+----+----+----+----+----+ l + A +
-    |  Frame Control              (1 octet) | e | u |
-    +----+----+----+----+----+----+----+----+ a + t +
-    |  Network ID           (0 or 2 octets) | r | h |
-    +----+----+----+----+----+----+----+----+ t + e +
-    |  Destination Address (0, 2, 8 octets) | e | n |
-    +----+----+----+----+----+----+----+----+ x + t +
-    |  Hdr Information Elements  (variable) | t | i |
-    +----+----+----+----+----+----+----+----+---+ c +
-    |  Bdy Information Elements  (variable) |   | a |
-    +----+----+----+----+----+----+----+----+ C + t +
-    |  Source Address    (0, 2 or 8 octets) | r | e |
-    +----+----+----+----+----+----+----+----+ y + d +
-    |  Payload                   (variable) | p |   |
-    +----+----+----+----+----+----+----+----+ t +---+
-    |  Msg Integrity Code   (0 or N octets) |   |
-    +----+----+----+----+----+----+----+----+---+
-    |  Hops                  (0 or 1 octet) |
-    +----+----+----+----+----+----+----+----+
-    |  Transmitter Addr  (0, 2 or 8 octets) |
-    +----+----+----+----+----+----+----+----+
 */
 
 #ifndef HEYMACFRAME_H_
 #define HEYMACFRAME_H_
 
 #include <stdint.h>
-//#include "mbed.h"
-//#include "Thread.h"
 
+#include "HeyMac.h"
 #include "HeyMacCmd.h"
 
 
-static int const FRAME_SZ_MAX = 256;
-
-/*
-Protocol ID (PID) Field
-
-=========== =================================
-Bit pattern Protocol
-=========== =================================
-1110 00vv   HeyMac TDMA, major (vv)ersion
-1110 01vv   HeyMac CSMA, major (vv)ersion
-1110 1xxx   HeyMac (RFU)
-=========== =================================
-*/
+/* Protocol ID (PID) Field */
 typedef enum
 {
     // TODO: HM_PIDFLD_TDMA_V0 = 0xE0,
@@ -78,12 +22,13 @@ typedef enum
     // TODO: HM_PIDFLD_FLOOD = 0xE8,
 } hm_pidfld_t8;
 
+
 class HeyMacFrame
 {
 public:
-    HeyMacFrame();
-    HeyMacFrame(uint8_t * buf, uint8_t sz);
-    ~HeyMacFrame();
+    HeyMacFrame();      // Init with a newly alloc'd frame
+    HeyMacFrame(uint8_t *buf, uint8_t sz);  // Init with a received frame
+    ~HeyMacFrame();         // dealloc the frame
 
     uint8_t *get_ref(void);
     uint8_t get_sz(void);
@@ -106,7 +51,7 @@ public:
     // TODO: update_multihop()
 
 private:
-    uint8_t _buf[FRAME_SZ_MAX];
+    uint8_t *_buf;
     uint8_t _payld_offset;
     uint8_t _payld_sz;
     uint8_t _mic_sz;
