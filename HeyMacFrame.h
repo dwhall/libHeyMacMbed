@@ -11,7 +11,6 @@ https://github.com/dwhall/HeyMac/blob/master/docs/HeyMacProtocol.md
 #include <stdint.h>
 
 #include "HeyMac.h"
-#include "HeyMacCmd.h"
 
 
 /* Protocol ID (PID) Field */
@@ -40,8 +39,8 @@ public:
     void set_dst_addr(uint64_t dst_addr);
     void set_src_addr(uint16_t src_addr);
     void set_src_addr(uint64_t src_addr);
-    bool set_payld(uint8_t * payld, uint8_t sz);
-    bool set_payld(HeyMacCmd &cmd);
+    bool set_payld(uint8_t *payld, uint8_t sz);
+    void set_payld_sz(uint8_t sz);
     // TODO: set_mic()
     bool set_multihop(uint8_t hops, uint16_t tx_addr);
     bool set_multihop(uint8_t hops, uint64_t tx_addr);
@@ -51,6 +50,7 @@ public:
     // TODO: update_multihop()
 
 private:
+    HeyMacFrame *_frm;
     uint8_t *_buf;
     uint8_t _payld_offset;
     uint8_t _payld_sz;

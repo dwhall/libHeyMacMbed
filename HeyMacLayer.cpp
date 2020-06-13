@@ -65,7 +65,7 @@ void HeyMacLayer::_main(void)
 
 //// Move to ping/bcn handler
     static uint8_t msg[5] = "ping";
-    HeyMacFrame *frame;
+    HeyMacFrame *frame = nullptr;
     HeyMacCmd cmd;
 
     for (;;)
@@ -115,16 +115,20 @@ void HeyMacLayer::_main(void)
 
             //// Move to ping/bcn handler
             frame = new HeyMacFrame();
-            cmd.cmd_txt(msg, sizeof(msg));
 
             frame->set_protocol(HM_PIDFLD_CSMA_V0);
             frame->set_src_addr(_hm_ident->get_long_addr());
-            frame->set_payld(cmd);
+
+            cmd.cmd_init(frame);
+            cmd.cmd_txt(msg, sizeof(msg));
         }
 
         if (evt_flags & EVT_PRDC)
         {
-            _radio->send(frame->get_ref(), frame->get_sz());
+            if (frame != nullptr)
+            {
+                _radio->send(frame->get_ref(), frame->get_sz());
+            }
         }
     }
 }

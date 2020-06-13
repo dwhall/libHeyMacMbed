@@ -227,9 +227,9 @@ bool HeyMacFrame::set_payld(uint8_t * payld, uint8_t sz)
     return success;
 }
 
-bool HeyMacFrame::set_payld(HeyMacCmd &cmd)
+void HeyMacFrame::set_payld_sz(uint8_t sz)
 {
-    return set_payld(cmd.get_ref(), cmd.get_sz());
+    _payld_sz = sz;
 }
 
 // TODO: set_mic()
