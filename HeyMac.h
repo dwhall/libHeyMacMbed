@@ -19,17 +19,13 @@ enum
 
 typedef enum
 {
-HM_RET_OK       = 0,
-HM_RET_ERR      = 1,
-HM_RET_NOT_IMPL = 2,
-
+    HM_RET_OK       = 0,
+    HM_RET_ERR      = 1,
+    HM_RET_NOT_IMPL = 2,
 } hm_retval_t;
 
-// typedef uint8_t hm_frame_buf_t[HM_FRAME_SZ];
 
 #define stringify(n) #n
 
-
-extern MemoryPool<uint8_t, HM_FRAME_SZ * HM_FRMBUF_POOL_CNT> g_frmbuf_pool;
 
 #endif /* HEYMAC_H_ */

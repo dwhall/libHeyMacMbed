@@ -19,10 +19,24 @@ static uint32_t const THRD_PRDC_MS = 5000;
 /** App-specific event flags */
 enum
 {
-    EVT_TX_PREP = EVT_BASE_LAST << 1,
+    EVT_RX_BEGIN = EVT_BASE_LAST << 1,
+    EVT_RX_END = EVT_BASE_LAST << 2,
+    EVT_TX_BEGIN = EVT_BASE_LAST << 3,
+    EVT_TX_END = EVT_BASE_LAST << 4,
 
-    EVT_ALL = EVT_BASE_ALL | EVT_TX_PREP
+    EVT_TXT_CALLSIGN = EVT_BASE_LAST << 28, // For fun/debug
+
+    EVT_ALL = EVT_BASE_ALL
+            | EVT_RX_BEGIN
+            | EVT_RX_END
+            | EVT_TX_BEGIN
+            | EVT_TX_END
+
+            | EVT_TXT_CALLSIGN    // For fun/debug
 };
+
+
+static Serial s_ser(USBTX, USBRX);
 
 
 HeyMacLayer::HeyMacLayer(char const *cred_fn)
@@ -48,36 +62,41 @@ HeyMacLayer::~HeyMacLayer()
 }
 
 
-// Callbacks for LoRaRadio
-void HeyMacLayer::_tx_done_mac_clbk(void) {}
-void HeyMacLayer::_tx_timeout_mac_clbk(void) {}
-void HeyMacLayer::_rx_done_mac_clbk(uint8_t const *payload, uint16_t size, int16_t rssi, int8_t snr) {}
-void HeyMacLayer::_rx_timeout_mac_clbk(void) {}
-void HeyMacLayer::_rx_error_mac_clbk(void) {}
-void HeyMacLayer::_fhss_change_channel_mac_clbk(uint8_t current_channel) {}
-void HeyMacLayer::_cad_done_mac_clbk(bool channel_busy) {}
+void HeyMacLayer::dump_regs(void)
+{
+    _radio->dump_regs();
+}
+
+
+void HeyMacLayer::evt_txt_callsign(void)
+{
+    _evt_flags->set(EVT_TXT_CALLSIGN);
+}
 
 
 void HeyMacLayer::_main(void)
 {
+    static uint16_t const BCN_PERIOD = 32000 / THRD_PRDC_MS;
+    uint16_t bcn_cnt = BCN_PERIOD;
     uint32_t evt_flags;
     radio_events_t mac_clbks;
 
-//// Move to ping/bcn handler
-    static uint8_t msg[5] = "ping";
-    HeyMacFrame *frame = nullptr;
+    // Temporary?
+    uint8_t const callsign[7] = "KC4KSU";
+    HeyMacFrame *frm_txt = nullptr;
+    HeyMacFrame *frm_bcn = nullptr;
     HeyMacCmd cmd;
 
     for (;;)
     {
         evt_flags = _evt_flags->wait_any(EVT_ALL);
 
-        if (evt_flags & EVT_TERM)
+        if (evt_flags & EVT_THRD_TERM)
         {
             break;
         }
 
-        if (evt_flags & EVT_INIT)
+        if (evt_flags & EVT_THRD_INIT)
         {
             // Parse in this thread with the large stack space
             _hm_ident->parse_cred_file();
@@ -100,40 +119,123 @@ void HeyMacLayer::_main(void)
 
             _radio->set_tx_config(
                 MODEM_LORA,
-                12,     /*pwr*/
-                0,      /*fdev (unused)*/
-                1,      /*BW*/   // 1 +7 ==> 250 kHz
-                7,      /*SF 128*/
-                2,      /*CR 4/6*/
-                8,      /*preamble*/
-                false,  /*fixlen*/
-                true,   /*crc*/
-                false,  /*freqhop*/
-                0,      /*hop prd*/
-                false,  /*iq inverted*/
-                100     /*ms tx timeout*/);
-
-            //// Move to ping/bcn handler
-            frame = new HeyMacFrame();
-
-            frame->set_protocol(HM_PIDFLD_CSMA_V0);
-            frame->set_src_addr(_hm_ident->get_long_addr());
-
-            cmd.cmd_init(frame);
-            cmd.cmd_txt(msg, sizeof(msg));
+                12,       /*pwr*/
+                0,        /*fdev (unused)*/
+                1, /*BW*/ // 1 +7 ==> 250 kHz
+                7,        /*SF 128*/
+                2,        /*CR 4/6*/
+                8,        /*preamble*/
+                false,    /*fixlen*/
+                true,     /*crc*/
+                false,    /*freqhop*/
+                0,        /*hop prd*/
+                false,    /*iq inverted*/
+                500); /*ms tx timeout*/
         }
 
-        if (evt_flags & EVT_PRDC)
+        if (evt_flags & EVT_THRD_PRDC)
         {
-            if (frame != nullptr)
+            if (--bcn_cnt == 0)
             {
-                _radio->send(frame->get_ref(), frame->get_sz());
+                bcn_cnt = BCN_PERIOD;
+                _tx_bcn();
             }
+        }
+
+        if (evt_flags & EVT_RX_BEGIN)
+        {
+            // TODO: _radio->receive();
+        }
+
+        /* Transmit is done or timed-out and we resume continuous RX */
+        if (evt_flags & EVT_TX_END)
+        {
+            // TODO: flush, clean, change radio state?
+            _evt_flags->set(EVT_RX_BEGIN);
+        }
+
+        if (evt_flags & EVT_TXT_CALLSIGN)
+        {
+            HeyMacFrame frm_txt;
+            HeyMacCmd cmd;
+
+            frm_txt.set_protocol(HM_PIDFLD_CSMA_V0);
+            frm_txt.set_src_addr(_hm_ident->get_long_addr());
+            cmd.cmd_init(&frm_txt);
+            cmd.cmd_txt(callsign, sizeof(callsign));
+            //TODO: enqueue (FIFO) frm_txt instead of this:
+            _radio->send(frm_txt.get_ref(), frm_txt.get_sz());
         }
     }
 }
 
-void HeyMacLayer::dump_regs(void)
+
+// Callbacks for LoRaRadio
+void HeyMacLayer::_tx_done_mac_clbk(void)
 {
-    _radio->dump_regs();
+    s_ser.puts("TXDONE\n");
+    _evt_flags->set(EVT_TX_END);
+}
+
+void HeyMacLayer::_tx_timeout_mac_clbk(void)
+{
+    s_ser.puts("TXTO\n");
+    _evt_flags->set(EVT_TX_END);
+}
+
+void HeyMacLayer::_rx_done_mac_clbk(uint8_t const *payload, uint16_t size, int16_t rssi, int8_t snr)
+{
+    s_ser.puts("RXDONE\n");
+    _dump_buf(payload, size);
+    _evt_flags->set(EVT_RX_END);
+}
+
+void HeyMacLayer::_rx_timeout_mac_clbk(void)
+{
+    s_ser.puts("RXTO\n");
+    _evt_flags->set(EVT_RX_END);
+}
+
+void HeyMacLayer::_rx_error_mac_clbk(void)
+{
+    s_ser.puts("RXERR\n");
+    _evt_flags->set(EVT_RX_END);
+}
+
+void HeyMacLayer::_fhss_change_channel_mac_clbk(uint8_t current_channel) {}
+void HeyMacLayer::_cad_done_mac_clbk(bool channel_busy) {}
+
+
+void HeyMacLayer::_tx_bcn(void)
+{
+    HeyMacFrame frm_bcn;
+    HeyMacCmd cmd;
+
+    frm_bcn.set_protocol(HM_PIDFLD_CSMA_V0);
+    frm_bcn.set_src_addr(_hm_ident->get_long_addr());
+    cmd.cmd_init(&frm_bcn);
+    uint16_t const caps = 0xCA; // TODO: impl:
+    uint16_t const status = 0x00; // status = red flags = (1==fault)
+    cmd.cmd_cbcn(caps, status);   //TODO: , nets, ngbrs);
+
+    //TODO: enqueue (LIFO) frm_bcn instead of this:
+    _radio->send(frm_bcn.get_ref(), frm_bcn.get_sz());
+}
+
+
+void HeyMacLayer::_dump_buf(uint8_t const * const buf, uint8_t const sz)
+{
+    static char const hex[] = {"0123456789ABCDEF"};
+    uint8_t ch;
+
+    s_ser.putc('#');
+    s_ser.putc(' ');
+    for (int8_t i = 0; i < sz; i++ )
+    {
+        ch = buf[i];
+        s_ser.putc(hex[ch >> 4]);
+        s_ser.putc(hex[ch & 0x0F]);
+        s_ser.putc(' ');
+    }
+    s_ser.putc('\n');
 }

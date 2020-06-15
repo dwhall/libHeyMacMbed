@@ -34,7 +34,7 @@ AThread::~AThread()
 void AThread::thread_start(void)
 {
     _thread->start(callback(this, &AThread::_main));
-    _evt_flags->set(EVT_INIT);
+    _evt_flags->set(EVT_THRD_INIT);
 }
 
 
@@ -46,5 +46,5 @@ void AThread::_main(void)
 void AThread::_ticker_clbk(void)
 {
     /* Post the periodic event flag */
-    _evt_flags->set(EVT_PRDC);
+    _evt_flags->set(EVT_THRD_PRDC);
 }

@@ -27,10 +27,11 @@ enum
 };
 
 
-HeyMacFrame::HeyMacFrame()
+static rtos::MemoryPool<uint8_t, HM_FRAME_SZ * HM_FRMBUF_POOL_CNT> s_frmbuf_pool;
+
+
+HeyMacFrame::HeyMacFrame() : HeyMacFrame(s_frmbuf_pool.alloc(), 0)
 {
-    uint8_t *buf = g_frmbuf_pool.alloc();
-    HeyMacFrame(buf, 0);
 }
 
 
@@ -52,7 +53,7 @@ HeyMacFrame::HeyMacFrame(uint8_t * buf, uint8_t sz)
 
 HeyMacFrame::~HeyMacFrame()
 {
-    g_frmbuf_pool.free(_buf);
+    s_frmbuf_pool.free(_buf);
 }
 
 

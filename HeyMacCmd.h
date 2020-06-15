@@ -16,10 +16,20 @@ public:
     HeyMacCmd();
     ~HeyMacCmd();
 
+    /**
+     * Keeps the reference to the frame
+     * so it may be used by the cmd_*() methods
+     */
     void cmd_init(HeyMacFrame *frm);
-    void cmd_txt(uint8_t *txt, uint8_t sz);
-//    void cmd_cbcn(uint16_t caps, uint16_t status); // TODO: nets,ngbrs needs outside data
 
+    /**
+     * Returns true if the command will fit within the frame's payload
+     * and fills the frame's payload with the command.
+     * Return false if there is no room
+     * and leaves the payload unchanged.
+     */
+    bool cmd_txt(uint8_t const *const txt, uint8_t const sz);
+    bool cmd_cbcn(uint16_t const caps, uint16_t const status); // TODO: nets,ngbrs needs outside data
 
 private:
     HeyMacFrame *_frm;

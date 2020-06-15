@@ -50,7 +50,6 @@ public:
     // TODO: update_multihop()
 
 private:
-    HeyMacFrame *_frm;
     uint8_t *_buf;
     uint8_t _payld_offset;
     uint8_t _payld_sz;

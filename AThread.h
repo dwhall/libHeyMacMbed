@@ -14,12 +14,12 @@
 
 enum
 {
-    EVT_INIT = 1 << 0,
-    EVT_TERM = 1 << 1,
-    EVT_PRDC = 1 << 2,
+    EVT_THRD_INIT = 1 << 0,
+    EVT_THRD_TERM = 1 << 1,
+    EVT_THRD_PRDC = 1 << 2,
 
-    EVT_BASE_LAST = EVT_PRDC,
-    EVT_BASE_ALL = EVT_INIT | EVT_TERM | EVT_PRDC
+    EVT_BASE_LAST = EVT_THRD_PRDC,
+    EVT_BASE_ALL = EVT_THRD_INIT | EVT_THRD_TERM | EVT_THRD_PRDC
 };
 
 

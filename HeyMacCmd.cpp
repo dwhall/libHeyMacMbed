@@ -24,6 +24,7 @@ static uint8_t const CMD_PREFIX = 0x80;
 static uint8_t const CMD_PREFIX_MASK = 0xC0;
 static uint8_t const CMD_MASK = 0x3F;
 
+
 HeyMacCmd::HeyMacCmd()
 {
     _frm = nullptr;
@@ -33,17 +34,18 @@ HeyMacCmd::~HeyMacCmd()
 {
 }
 
+
 void HeyMacCmd::cmd_init(HeyMacFrame *frm)
 {
     _frm = frm;
 }
 
-void HeyMacCmd::cmd_txt(uint8_t *txt, uint8_t sz)
-{
-    uint8_t *payld;
-    uint8_t offset;
 
-    offset = _frm->get_sz();
+bool HeyMacCmd::cmd_txt(uint8_t const * const txt, uint8_t const sz)
+{
+    bool success = false;
+    uint8_t *payld = nullptr;
+    uint8_t offset = _frm->get_sz();
 
     if (offset + 1 + sz <= HM_FRAME_SZ)
     {
@@ -51,5 +53,29 @@ void HeyMacCmd::cmd_txt(uint8_t *txt, uint8_t sz)
         payld[CMD_IDX] = CMD_PREFIX | HM_CID_TXT;
         memcpy(&payld[CMD_IDX + 1], txt, sz);
         _frm->set_payld_sz(1 + sz);
+        success = true;
     }
+    return success;
+}
+
+
+bool HeyMacCmd::cmd_cbcn(uint16_t const caps, uint16_t const status)
+{
+    bool success = false;
+    uint8_t *payld = nullptr;
+    uint8_t offset = _frm->get_sz();
+
+    if (offset + 1 + 4 <= HM_FRAME_SZ)
+    {
+        payld = _frm->get_ref() + offset;
+        payld[CMD_IDX] = CMD_PREFIX | HM_CID_CBCN;
+        payld[CMD_IDX + 1] = caps >> 8;
+        payld[CMD_IDX + 2] = caps & 0xFF;
+        payld[CMD_IDX + 3] = status >> 8;
+        payld[CMD_IDX + 4] = status & 0xFF;
+
+        _frm->set_payld_sz(1 + 4);
+        success = true;
+    }
+    return success;
 }
