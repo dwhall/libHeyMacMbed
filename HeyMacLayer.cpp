@@ -81,12 +81,6 @@ void HeyMacLayer::_main(void)
     uint32_t evt_flags;
     radio_events_t mac_clbks;
 
-    // Temporary?
-    uint8_t const callsign[7] = "KC4KSU";
-    HeyMacFrame *frm_txt = nullptr;
-    HeyMacFrame *frm_bcn = nullptr;
-    HeyMacCmd cmd;
-
     for (;;)
     {
         evt_flags = _evt_flags->wait_any(EVT_ALL);
@@ -156,6 +150,7 @@ void HeyMacLayer::_main(void)
 
         if (evt_flags & EVT_TXT_CALLSIGN)
         {
+            uint8_t const callsign[7] = "KC4KSU";
             HeyMacFrame frm_txt;
             HeyMacCmd cmd;
 
