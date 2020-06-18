@@ -24,15 +24,14 @@ enum
     EVT_TX_BEGIN = EVT_BASE_LAST << 3,
     EVT_TX_END = EVT_BASE_LAST << 4,
 
-    EVT_TXT_CALLSIGN = EVT_BASE_LAST << 28, // For fun/debug
+    EVT_BTN = EVT_BASE_LAST << 5, // For fun/debug (may change value)
 
     EVT_ALL = EVT_BASE_ALL
             | EVT_RX_BEGIN
             | EVT_RX_END
             | EVT_TX_BEGIN
             | EVT_TX_END
-
-            | EVT_TXT_CALLSIGN    // For fun/debug
+            | EVT_BTN    // For fun/debug
 };
 
 
@@ -68,9 +67,9 @@ void HeyMacLayer::dump_regs(void)
 }
 
 
-void HeyMacLayer::evt_txt_callsign(void)
+void HeyMacLayer::evt_btn(void)
 {
-    _evt_flags->set(EVT_TXT_CALLSIGN);
+    _thread->flags_set(EVT_BTN);
 }
 
 
@@ -78,19 +77,19 @@ void HeyMacLayer::_main(void)
 {
     static uint16_t const BCN_PERIOD = 32000 / THRD_PRDC_MS;
     uint16_t bcn_cnt = BCN_PERIOD;
-    uint32_t evt_flags;
+    uint32_t flags;
     radio_events_t mac_clbks;
 
     for (;;)
     {
-        evt_flags = _evt_flags->wait_any(EVT_ALL);
+        flags = ThisThread::flags_wait_any(EVT_ALL, true);
 
-        if (evt_flags & EVT_THRD_TERM)
+        if (flags & EVT_THRD_TERM)
         {
             break;
         }
 
-        if (evt_flags & EVT_THRD_INIT)
+        if (flags & EVT_THRD_INIT)
         {
             // Parse in this thread with the large stack space
             _hm_ident->parse_cred_file();
@@ -127,7 +126,7 @@ void HeyMacLayer::_main(void)
                 500); /*ms tx timeout*/
         }
 
-        if (evt_flags & EVT_THRD_PRDC)
+        if (flags & EVT_THRD_PRDC)
         {
             if (--bcn_cnt == 0)
             {
@@ -136,21 +135,22 @@ void HeyMacLayer::_main(void)
             }
         }
 
-        if (evt_flags & EVT_RX_BEGIN)
+        if (flags & EVT_RX_BEGIN)
         {
             // TODO: _radio->receive();
         }
 
         /* Transmit is done or timed-out and we resume continuous RX */
-        if (evt_flags & EVT_TX_END)
+        if (flags & EVT_TX_END)
         {
             // TODO: flush, clean, change radio state?
-            _evt_flags->set(EVT_RX_BEGIN);
+            _thread->flags_set(EVT_RX_BEGIN);
         }
 
-        if (evt_flags & EVT_TXT_CALLSIGN)
+        if (flags & EVT_BTN)
         {
-            uint8_t const callsign[7] = "KC4KSU";
+            // TEMPORARY: when the button is pressed, emit a HeyMac Txt Command with my callsign as the payload
+            uint8_t const callsign[7] = "CALSGN";
             HeyMacFrame frm_txt;
             HeyMacCmd cmd;
 
@@ -169,32 +169,32 @@ void HeyMacLayer::_main(void)
 void HeyMacLayer::_tx_done_mac_clbk(void)
 {
     s_ser.puts("TXDONE\n");
-    _evt_flags->set(EVT_TX_END);
+    _thread->flags_set(EVT_TX_END);
 }
 
 void HeyMacLayer::_tx_timeout_mac_clbk(void)
 {
     s_ser.puts("TXTO\n");
-    _evt_flags->set(EVT_TX_END);
+    _thread->flags_set(EVT_TX_END);
 }
 
 void HeyMacLayer::_rx_done_mac_clbk(uint8_t const *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
     s_ser.puts("RXDONE\n");
     _dump_buf(payload, size);
-    _evt_flags->set(EVT_RX_END);
+    _thread->flags_set(EVT_RX_END);
 }
 
 void HeyMacLayer::_rx_timeout_mac_clbk(void)
 {
     s_ser.puts("RXTO\n");
-    _evt_flags->set(EVT_RX_END);
+    _thread->flags_set(EVT_RX_END);
 }
 
 void HeyMacLayer::_rx_error_mac_clbk(void)
 {
     s_ser.puts("RXERR\n");
-    _evt_flags->set(EVT_RX_END);
+    _thread->flags_set(EVT_RX_END);
 }
 
 void HeyMacLayer::_fhss_change_channel_mac_clbk(uint8_t current_channel) {}

@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include "mbed.h"
 #include "Thread.h"
-#include "EventFlags.h"
 
 #include "AThread.h"
 
@@ -15,7 +14,6 @@ AThread::AThread
     )
 {
     _thread = new rtos::Thread(osPriorityNormal, stack_size);
-    _evt_flags = new rtos::EventFlags();
     _period_ms = period_ms;
     if (_period_ms > 0)
     {
@@ -34,9 +32,8 @@ AThread::~AThread()
 void AThread::thread_start(void)
 {
     _thread->start(callback(this, &AThread::_main));
-    _evt_flags->set(EVT_THRD_INIT);
+    _thread->flags_set(EVT_THRD_INIT);
 }
-
 
 void AThread::_main(void)
 {
@@ -46,5 +43,5 @@ void AThread::_main(void)
 void AThread::_ticker_clbk(void)
 {
     /* Post the periodic event flag */
-    _evt_flags->set(EVT_THRD_PRDC);
+    _thread->flags_set(EVT_THRD_PRDC);
 }

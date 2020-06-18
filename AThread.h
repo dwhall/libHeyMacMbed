@@ -1,6 +1,6 @@
 /* Copyright 2020 Dean Hall.  See LICENSE for details. */
 /**
- * AThread - a Thread augmented with a Ticker, Event flags
+ * AThread - a Thread augmented with a Ticker
  */
 
 #ifndef ATHREAD_H_
@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include "mbed.h"
 #include "Thread.h"
-#include "EventFlags.h"
 
 
 enum
@@ -36,7 +35,6 @@ public:
 
 protected:
     rtos::Thread *_thread;
-    rtos::EventFlags *_evt_flags;
     LowPowerTicker *_ticker;
     uint32_t _period_ms;
 

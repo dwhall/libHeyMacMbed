@@ -19,7 +19,7 @@ public:
     HeyMacLayer(char const *cred_fn);
     ~HeyMacLayer();
     void dump_regs(void);
-    void evt_txt_callsign(void);
+    void evt_btn(void);
 
 private:
     SX1276_LoRaRadio *_radio; // TODO: make type LoRaRadio
