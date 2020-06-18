@@ -16,6 +16,7 @@ https://github.com/dwhall/HeyMac/blob/master/docs/HeyMacProtocol.md
 /* Protocol ID (PID) Field */
 typedef enum
 {
+    HM_PIDFLD_INVALID = 0,
     // TODO: HM_PIDFLD_TDMA_V0 = 0xE0,
     HM_PIDFLD_CSMA_V0 = 0xE4,
     // TODO: HM_PIDFLD_FLOOD = 0xE8,
@@ -25,11 +26,19 @@ typedef enum
 class HeyMacFrame
 {
 public:
-    HeyMacFrame();      // Init with a newly alloc'd frame
-    HeyMacFrame(uint8_t *buf, uint8_t sz);  // Init with a received frame
-    ~HeyMacFrame();         // dealloc the frame
+    /* Init with a newly alloc'd frame */
+    HeyMacFrame();
 
+    /* Init with a received frame */
+    HeyMacFrame(uint8_t *buf, uint8_t sz);
+
+    /* Dealloc the frame */
+    ~HeyMacFrame();
+
+    /* Returns a reference to buffer holding the frame */
     uint8_t *get_ref(void);
+
+    /* Returns the number of bytes used by the frame */
     uint8_t get_sz(void);
 
     // When building a frame, perform calls in this order:
@@ -42,12 +51,12 @@ public:
     bool set_payld(uint8_t *payld, uint8_t sz);
     void set_payld_sz(uint8_t sz);
     // TODO: set_mic()
-    bool set_multihop(uint8_t hops, uint16_t tx_addr);
-    bool set_multihop(uint8_t hops, uint64_t tx_addr);
+    bool set_mhop(uint8_t hops, uint16_t tx_addr);
+    bool set_mhop(uint8_t hops, uint64_t tx_addr);
 
-    // After receiving a frame, call parse() on it
+    /* After receiving a frame, call parse() on it */
     bool parse(void);
-    // TODO: update_multihop()
+    // TODO: updt_mhop()
 
 private:
     uint8_t *_buf;

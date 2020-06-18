@@ -91,10 +91,10 @@ void HeyMacLayer::_main(void)
 
         if (flags & EVT_THRD_INIT)
         {
-            // Parse in this thread with the large stack space
+            /* Parse in this thread with the large stack space */
             _hm_ident->parse_cred_file();
 
-            // Init the radio with these callbacks
+            /* Init the radio with these callbacks */
             mac_clbks.tx_done = mbed::callback(this, &HeyMacLayer::_tx_done_mac_clbk);
             mac_clbks.rx_done = mbed::callback(this, &HeyMacLayer::_rx_done_mac_clbk);
             mac_clbks.rx_error = mbed::callback(this, &HeyMacLayer::_rx_error_mac_clbk);
@@ -112,18 +112,18 @@ void HeyMacLayer::_main(void)
 
             _radio->set_tx_config(
                 MODEM_LORA,
-                12,       /*pwr*/
-                0,        /*fdev (unused)*/
-                1, /*BW*/ // 1 +7 ==> 250 kHz
-                7,        /*SF 128*/
-                2,        /*CR 4/6*/
-                8,        /*preamble*/
-                false,    /*fixlen*/
-                true,     /*crc*/
-                false,    /*freqhop*/
-                0,        /*hop prd*/
-                false,    /*iq inverted*/
-                500); /*ms tx timeout*/
+                12,         /*pwr*/
+                0,          /*fdev (unused)*/
+                1,          /*BW*/ // 1 +7 ==> 250 kHz
+                7,          /*SF 128*/
+                2,          /*CR 4/6*/
+                8,          /*preamble*/
+                false,      /*fixlen*/
+                true,       /*crc*/
+                false,      /*freqhop*/
+                0,          /*hop prd*/
+                false,      /*iq inverted*/
+                500);       /*ms tx timeout*/
         }
 
         if (flags & EVT_THRD_PRDC)
@@ -165,7 +165,7 @@ void HeyMacLayer::_main(void)
 }
 
 
-// Callbacks for LoRaRadio
+/* Callbacks for LoRaRadio */
 void HeyMacLayer::_tx_done_mac_clbk(void)
 {
     s_ser.puts("TXDONE\n");
