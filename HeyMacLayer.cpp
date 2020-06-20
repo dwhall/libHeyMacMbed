@@ -123,7 +123,7 @@ void HeyMacLayer::_main(void)
                 false,      /*freqhop*/
                 0,          /*hop prd*/
                 false,      /*iq inverted*/
-                500);       /*ms tx timeout*/
+                275);       /*ms tx timeout*/
         }
 
         if (flags & EVT_THRD_PRDC)
@@ -150,16 +150,17 @@ void HeyMacLayer::_main(void)
         if (flags & EVT_BTN)
         {
             // TEMPORARY: when the button is pressed, emit a HeyMac Txt Command with my callsign as the payload
-            uint8_t const callsign[7] = "CALSGN";
-            HeyMacFrame frm_txt;
+            char tac_id[HM_IDENT_TAC_ID_SZ];
+            HeyMacFrame frm;
             HeyMacCmd cmd;
 
-            frm_txt.set_protocol(HM_PIDFLD_CSMA_V0);
-            frm_txt.set_src_addr(_hm_ident->get_long_addr());
-            cmd.cmd_init(&frm_txt);
-            cmd.cmd_txt(callsign, sizeof(callsign));
-            //TODO: enqueue (FIFO) frm_txt instead of this:
-            _radio->send(frm_txt.get_ref(), frm_txt.get_sz());
+            _hm_ident->copy_tac_id_into(tac_id);
+            frm.set_protocol(HM_PIDFLD_CSMA_V0);
+            frm.set_src_addr(_hm_ident->get_long_addr());
+            cmd.cmd_init(&frm);
+            cmd.cmd_txt(tac_id, strlen(tac_id));
+            //TODO: enqueue (FIFO) frm instead of this:
+            _radio->send(frm.get_ref(), frm.get_sz());
         }
     }
 }
@@ -203,18 +204,18 @@ void HeyMacLayer::_cad_done_mac_clbk(bool channel_busy) {}
 
 void HeyMacLayer::_tx_bcn(void)
 {
-    HeyMacFrame frm_bcn;
+    HeyMacFrame frm;
     HeyMacCmd cmd;
 
-    frm_bcn.set_protocol(HM_PIDFLD_CSMA_V0);
-    frm_bcn.set_src_addr(_hm_ident->get_long_addr());
-    cmd.cmd_init(&frm_bcn);
+    frm.set_protocol(HM_PIDFLD_CSMA_V0);
+    frm.set_src_addr(_hm_ident->get_long_addr());
+    cmd.cmd_init(&frm);
     uint16_t const caps = 0xCA; // TODO: impl:
     uint16_t const status = 0x00; // status = red flags = (1==fault)
     cmd.cmd_cbcn(caps, status);   //TODO: , nets, ngbrs);
 
-    //TODO: enqueue (LIFO) frm_bcn instead of this:
-    _radio->send(frm_bcn.get_ref(), frm_bcn.get_sz());
+    //TODO: enqueue (LIFO) frm instead of this:
+    _radio->send(frm.get_ref(), frm.get_sz());
 }
 
 

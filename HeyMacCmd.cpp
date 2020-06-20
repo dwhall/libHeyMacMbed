@@ -41,7 +41,7 @@ void HeyMacCmd::cmd_init(HeyMacFrame *frm)
 }
 
 
-bool HeyMacCmd::cmd_txt(uint8_t const * const txt, uint8_t const sz)
+bool HeyMacCmd::cmd_txt(char const * const txt, uint8_t const sz)
 {
     bool success = false;
     uint8_t *payld = nullptr;

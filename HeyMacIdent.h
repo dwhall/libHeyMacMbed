@@ -14,16 +14,14 @@ public:
     HeyMacIdent(char const * const cred_fn);
     ~HeyMacIdent();
 
+    void copy_tac_id_into(char tac_id[HM_IDENT_TAC_ID_SZ]);
     uint64_t get_long_addr(void);
     void parse_cred_file(void);
 
 private:
-    static uint8_t const NAME_SZ = 64;
-    static uint8_t const TAC_ID_SZ = 16;
-
     char _cred_fn[HM_FILENAME_SZ];
-    char _name[NAME_SZ];
-    char _tac_id[TAC_ID_SZ];
+    char _name[HM_IDENT_NAME_SZ];
+    char _tac_id[HM_IDENT_TAC_ID_SZ];
     uint8_t _long_addr[HM_LONG_ADDR_SZ];
 
     void hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr[HM_LONG_ADDR_SZ]);

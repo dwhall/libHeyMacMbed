@@ -28,7 +28,7 @@ public:
      * Return false if there is no room
      * and leaves the payload unchanged.
      */
-    bool cmd_txt(uint8_t const *const txt, uint8_t const sz);
+    bool cmd_txt(char const *const txt, uint8_t const sz);
     bool cmd_cbcn(uint16_t const caps, uint16_t const status); // TODO: nets,ngbrs needs outside data
 
 private:

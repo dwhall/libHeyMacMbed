@@ -24,6 +24,12 @@ HeyMacIdent::~HeyMacIdent()
 {}
 
 
+void HeyMacIdent::copy_tac_id_into(char tac_id[HM_IDENT_TAC_ID_SZ])
+{
+    strncpy(tac_id, _tac_id, sizeof(tac_id));
+}
+
+
 uint64_t HeyMacIdent::get_long_addr(void)
 {
     uint64_t addr;
@@ -135,11 +141,11 @@ void HeyMacIdent::parse_cred_file(void)
 
             // Get "name" item from json obj
             string json_item = cred["name"].get<std::string>();
-            strncpy(_name, json_item.c_str(), NAME_SZ);
+            strncpy(_name, json_item.c_str(), HM_IDENT_NAME_SZ);
 
             // Get "tac_id" item from json obj
             json_item = cred["tac_id"].get<std::string>();
-            strncpy(_tac_id, json_item.c_str(), TAC_ID_SZ);
+            strncpy(_tac_id, json_item.c_str(), HM_IDENT_TAC_ID_SZ);
 
             // Get "pub_key" item from json obj
             json_item = cred["pub_key"].get<std::string>();
