@@ -10,16 +10,13 @@
 AThread::AThread
     (
     uint32_t const stack_size,
-    uint32_t const period_ms
+    uint32_t const period_ms,
+    char const * thrd_name
     )
 {
-    _thread = new rtos::Thread(osPriorityNormal, stack_size);
+    _thread = new rtos::Thread(osPriorityNormal, stack_size, nullptr, thrd_name);
     _period_ms = period_ms;
-    if (_period_ms > 0)
-    {
-        _ticker = new LowPowerTicker();
-        _ticker->attach_us(callback(this, &AThread::_ticker_clbk), _period_ms * 1000);
-    }
+    _ticker = nullptr;
 }
 
 

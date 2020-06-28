@@ -11,14 +11,17 @@
 #include "Thread.h"
 
 
+/* Event flags used with mbedOS */
 enum
 {
+    EVT_NONE      = 0,
+
     EVT_THRD_INIT = 1 << 0,
     EVT_THRD_TERM = 1 << 1,
     EVT_THRD_PRDC = 1 << 2,
 
     EVT_BASE_LAST = EVT_THRD_PRDC,
-    EVT_BASE_ALL = EVT_THRD_INIT | EVT_THRD_TERM | EVT_THRD_PRDC
+    EVT_BASE_ALL  = EVT_THRD_INIT | EVT_THRD_TERM | EVT_THRD_PRDC
 };
 
 
@@ -28,7 +31,8 @@ public:
     AThread
         (
         uint32_t const stack_size = OS_STACK_SIZE,
-        uint32_t const period = 0
+        uint32_t const period = 0,
+        char const * thrd_name = nullptr
         );
     ~AThread();
     void thread_start(void);
@@ -38,10 +42,10 @@ protected:
     LowPowerTicker *_ticker;
     uint32_t _period_ms;
 
-private:
-    // AThread callbacks
+protected:
     void _ticker_clbk(void);
 
+private:
     virtual void _main(void);
 };
 

@@ -45,7 +45,7 @@ bool HeyMacCmd::cmd_txt(char const * const txt, uint8_t const sz)
 {
     bool success = false;
     uint8_t *payld = nullptr;
-    uint8_t offset = _frm->get_frm_sz();
+    uint16_t offset = _frm->get_frm_sz();
 
     if (offset + 1 + sz <= HM_FRAME_SZ)
     {
@@ -63,7 +63,7 @@ bool HeyMacCmd::cmd_cbcn(uint16_t const caps, uint16_t const status)
 {
     bool success = false;
     uint8_t *payld = nullptr;
-    uint8_t offset = _frm->get_frm_sz();
+    uint16_t offset = _frm->get_frm_sz();
 
     if (offset + 1 + 4 <= HM_FRAME_SZ)
     {

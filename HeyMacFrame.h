@@ -42,7 +42,7 @@ public:
     uint8_t *get_buf(void);
 
     /** Returns the number of bytes used by the buf */
-    uint8_t get_buf_sz(void);
+    uint16_t get_buf_sz(void);
 
     /**
      * Returns a reference to the frame.
@@ -51,7 +51,7 @@ public:
     uint8_t *get_frm(void);
 
     /** Returns the number of bytes used by the frm */
-    uint8_t get_frm_sz(void);
+    uint16_t get_frm_sz(void);
 
     // When building a frame, perform calls in this order:
     void set_protocol(hm_pidfld_t8 pidfld);

@@ -38,7 +38,7 @@ uint64_t HeyMacIdent::get_long_addr(void)
 }
 
 
-void HeyMacIdent::hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr[HM_LONG_ADDR_SZ])
+void HeyMacIdent::_hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr[HM_LONG_ADDR_SZ])
 {
     enum
     {
@@ -48,24 +48,24 @@ void HeyMacIdent::hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr
     mbedtls_sha512_context sha_ctx2;
     unsigned char hash[HASH_SZ];
 
-    // Perform SHA512 hash twice on the public key
+    /* Perform SHA512 hash twice on the public key */
     mbedtls_sha512_init(&sha_ctx);
     mbedtls_sha512_starts_ret(&sha_ctx, 0);
-    mbedtls_sha512_update_ret(&sha_ctx, pub_key, HM_SECP384R1_KEY_SZ); // once
+    mbedtls_sha512_update_ret(&sha_ctx, pub_key, HM_SECP384R1_KEY_SZ); /* once */
     mbedtls_sha512_clone(&sha_ctx2, &sha_ctx);
     mbedtls_sha512_finish_ret(&sha_ctx, hash);
 
-    mbedtls_sha512_update_ret(&sha_ctx2, hash, HASH_SZ); // twice
+    mbedtls_sha512_update_ret(&sha_ctx2, hash, HASH_SZ); /* twice */
     mbedtls_sha512_finish_ret(&sha_ctx2, hash);
     mbedtls_sha512_free(&sha_ctx);
     mbedtls_sha512_free(&sha_ctx2);
 
-    // Copy the first 128-bits of the 512-bit hash
+    /* Copy the first 128-bits of the 512-bit hash */
     memcpy(r_addr, hash, HM_LONG_ADDR_SZ);
 }
 
 
-void HeyMacIdent::hex_to_bin(string const & hex_data, uint8_t *const r_bin, size_t sz)
+void HeyMacIdent::_hex_to_bin(string const & hex_data, uint8_t *const r_bin, size_t sz)
 {
     char c;
     uint8_t b;
@@ -73,7 +73,7 @@ void HeyMacIdent::hex_to_bin(string const & hex_data, uint8_t *const r_bin, size
 
     for (i = 0; i < sz; i++)
     {
-        // Upper nibble
+        /* Upper nibble */
         c = hex_data[2 * i];
         if ((c >= '0') && (c <= '9'))
             c -= '0';
@@ -85,7 +85,7 @@ void HeyMacIdent::hex_to_bin(string const & hex_data, uint8_t *const r_bin, size
             break;
         b = c << 4;
 
-        // Lower nibble
+        /* Lower nibble */
         c = hex_data[2 * i + 1];
         if ((c >= '0') && (c <= '9'))
             c -= '0';
@@ -100,7 +100,7 @@ void HeyMacIdent::hex_to_bin(string const & hex_data, uint8_t *const r_bin, size
         r_bin[i] = b;
     }
 
-    // Zero any remaining bytes (due to "break" from above)
+    /* Null any remaining bytes (due to "break" from above) */
     for ( ; i < sz; i++)
     {
         r_bin[i] = 0;
@@ -128,34 +128,34 @@ void HeyMacIdent::parse_cred_file(void)
     {
         FILE *fp;
 
-        // Open the credential json file
+        /* Open the credential json file */
         snprintf(fn, sizeof(fn), "/" FS_MOUNT_NAME "/%s", _cred_fn);
         fp = fopen(fn, "r");
         if (fp)
         {
-            // Read in and parse the json file
+            /* Read in and parse the json file */
             char buf[HM_FILEBUF_SZ];
             fread(buf, sizeof(buf), 1, fp);
             MbedJSONValue cred;
             parse(cred, buf);
 
-            // Get "name" item from json obj
+            /* Get "name" item from json obj */
             string json_item = cred["name"].get<std::string>();
             strncpy(_name, json_item.c_str(), HM_IDENT_NAME_SZ);
 
-            // Get "tac_id" item from json obj
+            /* Get "tac_id" item from json obj */
             json_item = cred["tac_id"].get<std::string>();
             strncpy(_tac_id, json_item.c_str(), HM_IDENT_TAC_ID_SZ);
 
-            // Get "pub_key" item from json obj
+            /* Get "pub_key" item from json obj */
             json_item = cred["pub_key"].get<std::string>();
 
-            // Convert pub key from asciihex key to binary
+            /* Convert pub key from asciihex key to binary */
             uint8_t pub_key[HM_SECP384R1_KEY_SZ];
-            hex_to_bin(json_item, pub_key, HM_SECP384R1_KEY_SZ);
+            _hex_to_bin(json_item, pub_key, HM_SECP384R1_KEY_SZ);
 
-            // Hash pub_key into long_addr
-            hash_key_to_addr(pub_key, _long_addr);
+            /* Hash pub_key into long_addr */
+            _hash_key_to_addr(pub_key, _long_addr);
         }
     }
 }

@@ -24,8 +24,8 @@ private:
     char _tac_id[HM_IDENT_TAC_ID_SZ];
     uint8_t _long_addr[HM_LONG_ADDR_SZ];
 
-    void hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr[HM_LONG_ADDR_SZ]);
-    void hex_to_bin(string const & hex_data, uint8_t *const r_bin, size_t sz);
+    void _hash_key_to_addr(uint8_t const * const pub_key, uint8_t r_addr[HM_LONG_ADDR_SZ]);
+    void _hex_to_bin(string const & hex_data, uint8_t *const r_bin, size_t sz);
 
     void _spoof(void);
 };

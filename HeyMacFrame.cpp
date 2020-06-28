@@ -75,7 +75,7 @@ uint8_t *HeyMacFrame::get_buf(void)
     return _buf;
 }
 
-uint8_t HeyMacFrame::get_buf_sz(void)
+uint16_t HeyMacFrame::get_buf_sz(void)
 {
     return s_frame_start + get_frm_sz();
 }
@@ -85,9 +85,9 @@ uint8_t *HeyMacFrame::get_frm(void)
     return &_frm[s_frame_start];
 }
 
-uint8_t HeyMacFrame::get_frm_sz(void)
+uint16_t HeyMacFrame::get_frm_sz(void)
 {
-    uint8_t sz;
+    uint16_t sz;
     uint8_t mhop_sz = 0;
 
     if( _rxd_sz )

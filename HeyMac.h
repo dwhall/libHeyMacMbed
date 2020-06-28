@@ -16,6 +16,7 @@ enum
 
     // item counts (not size)
     HM_FRMBUF_POOL_CNT = 4,
+    HM_TX_QUEUE_CNT = 8,
 };
 
 
