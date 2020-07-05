@@ -35,11 +35,23 @@ public:
     /* Dealloc the frame */
     ~HeyMacFrame();
 
-    /* Returns a reference to buffer holding the frame */
-    uint8_t *get_ref(void);
+    /**
+     * Returns a reference to buffer holding the frame.
+     * The frame does not start at the beginning of the buf.
+     */
+    uint8_t *get_buf(void);
 
-    /* Returns the number of bytes used by the frame */
-    uint8_t get_sz(void);
+    /** Returns the number of bytes used by the buf */
+    uint8_t get_buf_sz(void);
+
+    /**
+     * Returns a reference to the frame.
+     * The frame does not start at the beginning of the buf.
+     */
+    uint8_t *get_frm(void);
+
+    /** Returns the number of bytes used by the frm */
+    uint8_t get_frm_sz(void);
 
     // When building a frame, perform calls in this order:
     void set_protocol(hm_pidfld_t8 pidfld);
@@ -60,6 +72,7 @@ public:
 
 private:
     uint8_t *_buf;
+    uint8_t *_frm;
     uint8_t _payld_offset;
     uint8_t _payld_sz;
     uint8_t _mic_sz;

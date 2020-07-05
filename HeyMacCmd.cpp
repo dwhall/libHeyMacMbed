@@ -45,11 +45,11 @@ bool HeyMacCmd::cmd_txt(char const * const txt, uint8_t const sz)
 {
     bool success = false;
     uint8_t *payld = nullptr;
-    uint8_t offset = _frm->get_sz();
+    uint8_t offset = _frm->get_frm_sz();
 
     if (offset + 1 + sz <= HM_FRAME_SZ)
     {
-        payld = _frm->get_ref() + offset;
+        payld = _frm->get_frm() + offset;
         payld[CMD_IDX] = CMD_PREFIX | HM_CID_TXT;
         memcpy(&payld[CMD_IDX + 1], txt, sz);
         _frm->set_payld_sz(1 + sz);
@@ -63,11 +63,11 @@ bool HeyMacCmd::cmd_cbcn(uint16_t const caps, uint16_t const status)
 {
     bool success = false;
     uint8_t *payld = nullptr;
-    uint8_t offset = _frm->get_sz();
+    uint8_t offset = _frm->get_frm_sz();
 
     if (offset + 1 + 4 <= HM_FRAME_SZ)
     {
-        payld = _frm->get_ref() + offset;
+        payld = _frm->get_frm() + offset;
         payld[CMD_IDX] = CMD_PREFIX | HM_CID_CBCN;
         payld[CMD_IDX + 1] = caps >> 8;
         payld[CMD_IDX + 2] = caps & 0xFF;
