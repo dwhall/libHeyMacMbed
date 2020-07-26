@@ -226,6 +226,12 @@ class SX127xRadio
         /** Returns true if there are any outstanding settings that require Sleep op_mode */
         bool stngs_require_sleep(void);
 
+        /** 
+         * Updates the raw RNG value.
+         * Should be called regularly during RX to get RSSI noise.
+         */
+        void updt_rng(void);
+
         /**
          * Writes the given data[1:] into the FIFO reg.
          * data MUST have its first byte open to fill with the spi command.
@@ -294,6 +300,7 @@ class SX127xRadio
             REG_LORA_PREAMBLE_LEN = 0x20,
             REG_LORA_PREAMBLE_LEN_LSB = 0x21,
             REG_LORA_CFG3 = 0x26,
+            REG_LORA_RSSI_WB = 0x2C,
             REG_LORA_IF_FREQ_2 = 0x2F,
             REG_LORA_DTCT_OPTMZ = 0x31,
             REG_LORA_SYNC_WORD = 0x39
@@ -362,6 +369,9 @@ class SX127xRadio
          */
         uint8_t _rdo_stngs_applied[FLD_CNT];
         uint32_t _rdo_stngs_freq_applied; /* special case */
+
+        /** The raw RNG value collects the RSSI noise bits */
+        uint32_t _rng_raw;
 
         /**
          * Applies RX Spurious Reception countermeasures to settings.

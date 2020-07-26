@@ -307,7 +307,8 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_lstning(uint32_t const evt_flags)
 
     else if (evt_flags & EVT_THRD_PRDC)
     {
-        // TODO: update status, rx meta-data, RNG (using reg 0x2C)
+        // TODO: update status, rx meta-data
+        _radio->updt_rng();
         SM_HANDLED();
     }
 

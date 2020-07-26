@@ -70,6 +70,7 @@ SX127xRadio::SX127xRadio
     _spi->frequency(HM_LAYER_SPI_FREQ_HZ);
 
     _sig_dio_clbk = nullptr;
+    _rng_raw = 0;
 }
 
 SX127xRadio::~SX127xRadio()
@@ -165,6 +166,15 @@ bool SX127xRadio::stngs_require_sleep(void)
 {
     /* The LoRa mode requires being in sleep mode */
     return (_rdo_stngs[FLD_RDO_LORA_MODE] != _rdo_stngs_applied[FLD_RDO_LORA_MODE]);
+}
+
+void SX127xRadio::updt_rng(void)
+{
+    uint8_t reg = 0;
+
+    /* Use the least-significant bit of RSSI as noise */
+    _read(SX127xRadio::REG_LORA_RSSI_WB, &reg);
+    _rng_raw = (_rng_raw << 1) | (reg & 1);
 }
 
 /** The caller MUST leave data[0] available for the SPI command; FIFO data should occupy data[1:] */
