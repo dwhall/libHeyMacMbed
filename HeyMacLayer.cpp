@@ -38,11 +38,9 @@
 
 #include <stdint.h>
 #include <deque>
-#include <queue>
 
 #include "mbed.h"
 
-#include "AThread.h"
 #include "HeyMacIdent.h"
 #include "HeyMacLayer.h"
 #include "HeyMacFrame.h"
@@ -61,19 +59,26 @@ static uint32_t const THRD_PRDC_MS = 100;
 /** HeyMacLayer event flags */
 enum
 {
-    EVT_SM_ENTER            = EVT_BASE_LAST << 1,
+    EVT_NONE                = 0,
 
-    EVT_DIO_MODE_RDY        = EVT_BASE_LAST << 2,
-    EVT_DIO_CAD_DETECTED    = EVT_BASE_LAST << 3,
-    EVT_DIO_CAD_DONE        = EVT_BASE_LAST << 4,
-    EVT_DIO_FHSS_CHG_CHNL   = EVT_BASE_LAST << 5,
-    EVT_DIO_RX_TMOUT        = EVT_BASE_LAST << 6,
-    EVT_DIO_RX_DONE         = EVT_BASE_LAST << 7,
-    EVT_DIO_CLK_OUT         = EVT_BASE_LAST << 8,
-    EVT_DIO_PLL_LOCK        = EVT_BASE_LAST << 9,
-    EVT_DIO_VALID_HDR       = EVT_BASE_LAST << 10,
-    EVT_DIO_TX_DONE         = EVT_BASE_LAST << 11,
-    EVT_DIO_PAYLD_CRC_ERR   = EVT_BASE_LAST << 12,
+    EVT_THRD_INIT           = 1 << 0,   /** Thread init */
+    EVT_THRD_TERM           = 1 << 1,   /** Thread terminate */
+    EVT_THRD_PRDC           = 1 << 2,   /** Thread periodic */
+
+    EVT_SM_ENTER            = 1 << 3,   /** State machine entry */
+    EVT_SM_NEXT             = 1 << 4,   /** Reminder or iterator patterns */
+
+    EVT_DIO_MODE_RDY        = 1 << 5,   /** LoRa radio DIO ModeReady */
+    EVT_DIO_CAD_DETECTED    = 1 << 6,   /** LoRa radio DIO CadDetected */
+    EVT_DIO_CAD_DONE        = 1 << 7,   /** LoRa radio DIO CadDone */
+    EVT_DIO_FHSS_CHG_CHNL   = 1 << 8,   /** LoRa radio DIO FhssChangeChannel */
+    EVT_DIO_RX_TMOUT        = 1 << 9,   /** LoRa radio DIO RxTimeout */
+    EVT_DIO_RX_DONE         = 1 << 10,  /** LoRa radio DIO RxDone */
+    EVT_DIO_CLK_OUT         = 1 << 11,  /** LoRa radio DIO ClockOut */
+    EVT_DIO_PLL_LOCK        = 1 << 12,  /** LoRa radio DIO PllLock */
+    EVT_DIO_VALID_HDR       = 1 << 13,  /** LoRa radio DIO ValidHeader */
+    EVT_DIO_TX_DONE         = 1 << 14,  /** LoRa radio DIO TxDone */
+    EVT_DIO_PAYLD_CRC_ERR   = 1 << 15,  /** LoRa radio DIO PayloadCrcError */
 
     /**
      * When a frame is added to the transmit queue,
@@ -85,13 +90,10 @@ enum
      * through Setting will detect a non-empty tansmit queue
      * and transition to the Transmitting state then.
      */
-    EVT_TX_RDY              = EVT_BASE_LAST << 13,
-
-    /** Reminder or iterator patterns */
-    EVT_NEXT                = EVT_BASE_LAST << 14,
+    EVT_TX_RDY              = 1 << 16,
 
     /** Hardware User button event */
-    EVT_BTN                 = EVT_BASE_LAST << 15,
+    EVT_BTN                 = 1 << 17,
 
     EVT_ALL = (EVT_BTN << 1) - 1
 };
@@ -99,9 +101,14 @@ enum
 
 HeyMacLayer::HeyMacLayer(char const *cred_fn)
     :
-    AThread(THRD_STACK_SZ, THRD_PRDC_MS, "HMLayer"),
-    _tx_queue(deque<tx_data_t>(0))//HM_TX_QUEUE_CNT))
+    _tx_queue(deque<tx_data_t>(0))
 {
+    /* Thread stuff */
+    _thread = new Thread(osPriorityNormal, THRD_STACK_SZ, nullptr, "HMLayer");
+    _period_ms = THRD_PRDC_MS;
+    _ticker = nullptr;
+
+    /* App stuff */
     _hm_ident = new HeyMacIdent(cred_fn);
     _spi = new SPI
         (
@@ -135,7 +142,6 @@ void HeyMacLayer::enq_tx_frame(HeyMacFrame *frm, uint32_t tx_time)
 
     tx_data.frm = frm;
     tx_data.at_time_ms = tx_time;
-    // TODO: tx_stngs
     // TODO: Wrap _tx_queue access with smphr?
     _tx_queue.push_back(tx_data);
 
@@ -148,6 +154,19 @@ void HeyMacLayer::enq_tx_frame(HeyMacFrame *frm, uint32_t tx_time)
 void HeyMacLayer::evt_btn(void)
 {
     _thread->flags_set(EVT_BTN);
+}
+
+
+void HeyMacLayer::thread_join(void)
+{
+    _thread->join();
+}
+
+
+void HeyMacLayer::thread_start(void)
+{
+    _thread->start(callback(this, &HeyMacLayer::_main));
+    _thread->flags_set(EVT_THRD_INIT);
 }
 
 
@@ -191,6 +210,13 @@ void HeyMacLayer::_main(void)
         /* Set the ENTER event flag if we transitioned states */
         evt_flag_enter = (SM_RET_TRAN == retval) ? EVT_SM_ENTER : 0;
     }
+}
+
+
+void HeyMacLayer::_ticker_clbk(void)
+{
+    /* Post the periodic event flag */
+    _thread->flags_set(EVT_THRD_PRDC);
 }
 
 
@@ -238,7 +264,7 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
         }
         else
         {
-            _thread->flags_set(EVT_NEXT);
+            _thread->flags_set(EVT_SM_NEXT);
             SM_HANDLED();
         }
     }
@@ -251,11 +277,11 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
     else if (evt_flags & EVT_DIO_MODE_RDY)
     {
         _radio->write_sleep_stngs();
-        _thread->flags_set(EVT_NEXT);
+        _thread->flags_set(EVT_SM_NEXT);
         SM_HANDLED();
     }
 
-    else if (evt_flags & EVT_NEXT)
+    else if (evt_flags & EVT_SM_NEXT)
     {
         _radio->write_op_mode(SX127xRadio::OP_MODE_STBY);
         // TODO: await mode ready?

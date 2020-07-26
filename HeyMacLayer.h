@@ -8,7 +8,6 @@
 #include <queue>
 #include "mbed.h"
 
-#include "AThread.h"
 #include "SX127xRadio.h"
 #include "HeyMacIdent.h"
 #include "HeyMacFrame.h"
@@ -16,7 +15,7 @@
 using namespace std;
 
 
-class HeyMacLayer: public AThread
+class HeyMacLayer
 {
 public:
     HeyMacLayer(char const *cred_fn);
@@ -35,6 +34,13 @@ public:
      */
     void evt_btn(void);
 
+    /** Thread join */
+    void thread_join(void);
+
+    /** Starts the thread and sends the init event */
+    void thread_start(void);
+
+
 private:
     /** State machine return values */
     typedef enum
@@ -44,6 +50,7 @@ private:
         SM_RET_TRAN
     } sm_ret_t;
 
+    /** Transmit data struct that is stored in the _tx_queue */
     typedef struct
     {
         HeyMacFrame *frm;
@@ -51,10 +58,18 @@ private:
         // TODO: tx_stngs;
     } tx_data_t;
 
+    /* Thread stuff */
+    Thread *_thread;
+    LowPowerTicker *_ticker;
+    uint32_t _period_ms;
+
+    /* State machine stuff */
+    sm_ret_t (HeyMacLayer::*_st_handler)(uint32_t const evt_flags);
+
+    /* App stuff */
     SPI *_spi;
     SX127xRadio *_radio;
     HeyMacIdent *_hm_ident;
-    sm_ret_t (HeyMacLayer::*_st_handler)(uint32_t const evt_flags);
     deque<tx_data_t> _tx_queue;
 
     /** Runs this thread's main loop */
@@ -113,6 +128,9 @@ private:
      * and transitions to Setting.
      */
     sm_ret_t _st_txing(uint32_t const evt_flags);
+
+    /** Ticker callback.  Posts the periodic event to thread */
+    void _ticker_clbk(void);
 
     /**
      * Transmit beacon
