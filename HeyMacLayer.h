@@ -4,14 +4,16 @@
 #define HEYMACLAYER_H_
 
 #include <stdint.h>
-#include <list>           // std::list
-#include <queue>          // std::queue
+#include <list>
+#include <queue>
 #include "mbed.h"
 
 #include "AThread.h"
 #include "SX127xRadio.h"
 #include "HeyMacIdent.h"
 #include "HeyMacFrame.h"
+
+using namespace std;
 
 
 class HeyMacLayer: public AThread
@@ -53,8 +55,8 @@ private:
     SX127xRadio *_radio;
     HeyMacIdent *_hm_ident;
     sm_ret_t (HeyMacLayer::*_st_handler)(uint32_t const evt_flags);
-    std::list<tx_data_t> _tx_list;
-    std::queue<tx_data_t, std::list<tx_data_t>> _tx_queue;
+    list<tx_data_t> _tx_list;
+    queue<tx_data_t, list<tx_data_t>> _tx_queue;
 
     /** Runs this thread's main loop */
     void _main(void);
@@ -63,7 +65,7 @@ private:
      * Posts an event to this thread indicating a radio DIOx pin rising edge.
      * This is given to the radio instance as a callback.
      */
-    void _evt_dio(sig_dio_t const dio);
+    void _evt_dio(SX127xRadio::sig_dio_t const dio);
 
     /* State handlers */
     /**
@@ -119,8 +121,6 @@ private:
      * and inserts it into the transmit queue.
      */
     void _tx_bcn(void);
-
-    void _dump_buf(uint8_t const *const buf, uint8_t const sz);
 };
 
 #endif /* HEYMACLAYER_H_ */

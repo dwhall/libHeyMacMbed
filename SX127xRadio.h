@@ -24,25 +24,6 @@
 #include "mbed.h"
 #include "Callback.h"
 
-typedef enum : uint8_t
-{
-    SIG_DIO_MODE_RDY = 0,
-    SIG_DIO_CAD_DETECTED,
-    SIG_DIO_CAD_DONE,
-    SIG_DIO_FHSS_CHG_CHNL,
-    SIG_DIO_RX_TMOUT,
-    SIG_DIO_RX_DONE,
-    SIG_DIO_CLK_OUT,
-    SIG_DIO_PLL_LOCK,
-    SIG_DIO_VALID_HDR,
-    SIG_DIO_TX_DONE,
-    SIG_DIO_PAYLD_CRC_ERR,
-
-    SIG_DIO_CNT
-} sig_dio_t;
-
-typedef void (* sig_dio_clbk_t)(sig_dio_t const);
-
 
 class SX127xRadio
 {
@@ -64,6 +45,35 @@ class SX127xRadio
         static uint32_t const FREQ_MIN =  137000000;
         static uint32_t const FREQ_MAX = 1020000000;
 
+        /**
+         * The LoRa radio hardware has DIO0:5 pin interrupts
+         * which have different meanings depending on DIO settings.
+         * This SX127xRadio library handles the DIO pin interrupt
+         * and uses current DIO settings to translate the interrupt
+         * to one of these signals.  This library calls the provided
+         * callback with one of these signals.
+         */
+        typedef enum : uint8_t
+        {
+            SIG_DIO_MODE_RDY = 0,
+            SIG_DIO_CAD_DETECTED,
+            SIG_DIO_CAD_DONE,
+            SIG_DIO_FHSS_CHG_CHNL,
+            SIG_DIO_RX_TMOUT,
+            SIG_DIO_RX_DONE,
+            SIG_DIO_CLK_OUT,
+            SIG_DIO_PLL_LOCK,
+            SIG_DIO_VALID_HDR,
+            SIG_DIO_TX_DONE,
+            SIG_DIO_PAYLD_CRC_ERR,
+
+            SIG_DIO_CNT
+        } sig_dio_t;
+
+        /** Callback type for SX127xRadio to notify its caller of a DIO Signal */
+        typedef void (* sig_dio_clbk_t)(sig_dio_t const);
+
+        /** LoRa mode IRQ bit flags */
         typedef enum : uint8_t
         {
             LORA_IRQ_NONE            = 0x00,
@@ -236,11 +246,7 @@ class SX127xRadio
 
         void write_lora_irq_flags(irq_bitf_t const clear_these = LORA_IRQ_ALL);
 
-        /**
-         * Writes the given op_mode to the register immediately.
-         * Also writes the desired LoRa mode and LF mode bits from the settings struct;
-         * however, the LoRa mode will only take if the op_mode is Sleep.
-         */
+        /** Writes the given op_mode to the register immediately */
         void write_op_mode(op_mode_t const op_mode);
 
         /** Writes all outstanding settings with the radio in Standby mode */
@@ -314,6 +320,7 @@ class SX127xRadio
             IRQ_BITF_RX_DONE = 1 << IRQ_BITI_RX_DONE,
             IRQ_BITF_RX_TMOUT = 1 << IRQ_BITI_RX_TMOUT,
         };
+
         typedef struct
         {
             bool        lora_mode;  /* setting applies to reg when in LoRa mode     */

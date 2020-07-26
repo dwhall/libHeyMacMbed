@@ -42,6 +42,7 @@ SX127xRadio::stngs_info_t const SX127xRadio::_stngs_info_lut[FLD_CNT] =
     /* FLD_LORA_AGC_ON          */  {   true,   REG_LORA_CFG3,          1,      2,      1,      0,                  1,                  0                   },
     /* FLD_LORA_SYNC_WORD       */  {   true,   REG_LORA_SYNC_WORD,     1,      0,      8,      0,                  (1<<8)-1,           0x12                },
 };
+//FIXME: MBED_STATIC_ASSERT(CNT_OF(SX127xRadio::_stngs_info_lut) == SX127xRadio::FLD_CNT, "_stngs_info_lut[]: incorrect table entry count");
 
 SX127xRadio::SX127xRadio
     (
@@ -64,6 +65,10 @@ SX127xRadio::SX127xRadio
     _dio5(dio5)
 {
     _spi = spi;
+    _spi->format(8, 0);
+    _spi->set_default_write_value(0);
+    _spi->frequency(HM_LAYER_SPI_FREQ_HZ);
+
     _sig_dio_clbk = nullptr;
 }
 
@@ -87,8 +92,17 @@ void SX127xRadio::init_radio(Callback<void(sig_dio_t const)> sig_dio_clbk)
     _reset_rdo_stngs();
 
     _validate_chip();
-}
 
+    /*
+    Put the radio in LoRa mode so DIO5 outputs ModeReady (instead of ClkOut).
+    This is needed so the state machine receives the ModeReady event.
+    */
+    write_op_mode(SX127xRadio::OP_MODE_SLEEP);
+    set(SX127xRadio::FLD_RDO_LORA_MODE, 1);
+    write_sleep_stngs();
+    write_op_mode(SX127xRadio::OP_MODE_STBY);
+    _rdo_stngs_applied[SX127xRadio::FLD_RDO_LORA_MODE] = 1;
+}
 
 SX127xRadio::op_mode_t SX127xRadio::read_op_mode(void)
 {
@@ -326,9 +340,9 @@ void SX127xRadio::_dio0_isr(void)
 {
     static sig_dio_t const dio0_to_sig_lut[] =
     {
-        SIG_DIO_RX_DONE,
-        SIG_DIO_TX_DONE,
-        SIG_DIO_CAD_DONE
+        SX127xRadio::SIG_DIO_RX_DONE,
+        SX127xRadio::SIG_DIO_TX_DONE,
+        SX127xRadio::SIG_DIO_CAD_DONE
     };
 
     MBED_ASSERT(_rdo_stngs_applied[FLD_RDO_DIO0] < DIO_VAL_MAX);
@@ -343,9 +357,9 @@ void SX127xRadio::_dio1_isr(void)
 {
     static sig_dio_t const dio1_to_sig_lut[] =
     {
-        SIG_DIO_RX_TMOUT,
-        SIG_DIO_FHSS_CHG_CHNL,
-        SIG_DIO_CAD_DETECTED
+        SX127xRadio::SIG_DIO_RX_TMOUT,
+        SX127xRadio::SIG_DIO_FHSS_CHG_CHNL,
+        SX127xRadio::SIG_DIO_CAD_DETECTED
     };
 
     MBED_ASSERT(_rdo_stngs_applied[FLD_RDO_DIO1] < DIO_VAL_MAX);
@@ -360,9 +374,9 @@ void SX127xRadio::_dio2_isr(void)
 {
     static sig_dio_t const dio2_to_sig_lut[] =
     {
-        SIG_DIO_FHSS_CHG_CHNL,
-        SIG_DIO_FHSS_CHG_CHNL,
-        SIG_DIO_FHSS_CHG_CHNL
+        SX127xRadio::SIG_DIO_FHSS_CHG_CHNL,
+        SX127xRadio::SIG_DIO_FHSS_CHG_CHNL,
+        SX127xRadio::SIG_DIO_FHSS_CHG_CHNL
     };
 
     MBED_ASSERT(_rdo_stngs_applied[FLD_RDO_DIO2] < DIO_VAL_MAX);
@@ -377,9 +391,9 @@ void SX127xRadio::_dio3_isr(void)
 {
     static sig_dio_t const dio3_to_sig_lut[] =
     {
-        SIG_DIO_CAD_DONE,
-        SIG_DIO_VALID_HDR,
-        SIG_DIO_PAYLD_CRC_ERR
+        SX127xRadio::SIG_DIO_CAD_DONE,
+        SX127xRadio::SIG_DIO_VALID_HDR,
+        SX127xRadio::SIG_DIO_PAYLD_CRC_ERR
     };
 
     MBED_ASSERT(_rdo_stngs_applied[FLD_RDO_DIO3] < DIO_VAL_MAX);
@@ -394,9 +408,9 @@ void SX127xRadio::_dio4_isr(void)
 {
     static sig_dio_t const dio4_to_sig_lut[] =
     {
-        SIG_DIO_CAD_DETECTED,
-        SIG_DIO_PLL_LOCK,
-        SIG_DIO_PLL_LOCK
+        SX127xRadio::SIG_DIO_CAD_DETECTED,
+        SX127xRadio::SIG_DIO_PLL_LOCK,
+        SX127xRadio::SIG_DIO_PLL_LOCK
     };
 
     MBED_ASSERT(_rdo_stngs_applied[FLD_RDO_DIO4] < DIO_VAL_MAX);
@@ -411,9 +425,9 @@ void SX127xRadio::_dio5_isr(void)
 {
     static sig_dio_t const dio5_to_sig_lut[] =
     {
-        SIG_DIO_MODE_RDY,
-        SIG_DIO_CLK_OUT,
-        SIG_DIO_CLK_OUT
+        SX127xRadio::SIG_DIO_MODE_RDY,
+        SX127xRadio::SIG_DIO_CLK_OUT,
+        SX127xRadio::SIG_DIO_CLK_OUT
     };
 
     MBED_ASSERT(_rdo_stngs_applied[FLD_RDO_DIO5] < DIO_VAL_MAX);
@@ -436,7 +450,7 @@ void SX127xRadio::_read(reg_addr_t const addr, uint8_t * data, uint16_t const sz
     txbuf[0] = addr & SPI_READ_MASK;
     memset(&txbuf[1], 0, sz);
 
-    _spi->write((char*)txbuf, 1 + sz, (char*)rxbuf, sizeof(rxbuf));
+    _spi->write((char*)txbuf, 1 + sz, (char*)rxbuf, 1 + sz);
 
     memcpy(data, &rxbuf[1], sz);
 }
@@ -459,7 +473,7 @@ void SX127xRadio::_validate_chip(void)
 
     _read(REG_RDO_CHIP_VRSN, &reg);
 
-    /* If we this this assert, the SPI bus or the chip is not working */
+    /* If we hit this this assert, the SPI bus or the chip is not working */
     MBED_ASSERT(SEMTECH_SX127X_SI_REV_ID == reg);
 }
 

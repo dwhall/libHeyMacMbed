@@ -13,6 +13,8 @@
 #include "HeyMac.h"
 #include "HeyMacIdent.h"
 
+using namespace std;
+
 
 HeyMacIdent::HeyMacIdent(char const * const cred_fn)
 {
@@ -140,15 +142,15 @@ void HeyMacIdent::parse_cred_file(void)
             parse(cred, buf);
 
             /* Get "name" item from json obj */
-            string json_item = cred["name"].get<std::string>();
+            string json_item = cred["name"].get<string>();
             strncpy(_name, json_item.c_str(), HM_IDENT_NAME_SZ);
 
             /* Get "tac_id" item from json obj */
-            json_item = cred["tac_id"].get<std::string>();
+            json_item = cred["tac_id"].get<string>();
             strncpy(_tac_id, json_item.c_str(), HM_IDENT_TAC_ID_SZ);
 
             /* Get "pub_key" item from json obj */
-            json_item = cred["pub_key"].get<std::string>();
+            json_item = cred["pub_key"].get<string>();
 
             /* Convert pub key from asciihex key to binary */
             uint8_t pub_key[HM_SECP384R1_KEY_SZ];

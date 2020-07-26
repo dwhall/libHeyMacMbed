@@ -49,6 +49,8 @@
 #include "HeyMacCmd.h"
 #include "SX127xRadio.h"
 
+using namespace std;
+
 
 static int const THRD_STACK_SZ = 6 * 1024;
 static uint32_t const THRD_PRDC_MS = 100;
@@ -95,25 +97,20 @@ enum
 };
 
 
-static Serial s_ser(USBTX, USBRX);
-
-
 HeyMacLayer::HeyMacLayer(char const *cred_fn)
     :
     AThread(THRD_STACK_SZ, THRD_PRDC_MS, "HMLayer"),
-    _tx_list(std::list<tx_data_t>(HM_TX_QUEUE_CNT)),
-    _tx_queue(std::queue<tx_data_t, std::list<tx_data_t>>(_tx_list))
+    _tx_list(list<tx_data_t>(HM_TX_QUEUE_CNT)),
+    _tx_queue(queue<tx_data_t, list<tx_data_t>>(_tx_list))
 {
-    /* Make former chip select pin inert */
-    DigitalIn unused(PB_6);
-
     _hm_ident = new HeyMacIdent(cred_fn);
     _spi = new SPI
         (
         HM_PIN_LORA_MOSI,
         HM_PIN_LORA_MISO,
         HM_PIN_LORA_SCK,
-        HM_PIN_LORA_NSS
+        HM_PIN_LORA_NSS,
+        use_gpio_ssel
         );
     _radio = new SX127xRadio
         (
@@ -211,7 +208,7 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_initing(uint32_t const evt_flags)
 
         /* Settings that differ from hwreset */
         _radio->set(SX127xRadio::FLD_RDO_LORA_MODE, 1);
-        _radio->set(SX127xRadio::FLD_RDO_FREQ_HZ, HM_LAYER_FREQ_HZ);
+        _radio->set(SX127xRadio::FLD_RDO_FREQ_HZ, HM_LAYER_RF_FREQ_HZ);
         _radio->set(SX127xRadio::FLD_RDO_MAX_PWR, 7);
         _radio->set(SX127xRadio::FLD_RDO_PA_BOOST, 1);
 
@@ -237,7 +234,7 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
         if (_radio->stngs_require_sleep())
         {
             _radio->write_op_mode(SX127xRadio::OP_MODE_SLEEP);
-            /* Radio will give us the DIO ModeReady signal when it is in sleep mode */
+            /* Radio will give us the DIO ModeReady signal when it reaches sleep mode */
             SM_HANDLED();
         }
         else
@@ -248,7 +245,7 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
     }
 
     /*
-    Radio has transitioned to sleep mode.
+    Radio has reached sleep mode.
     Write outstanding settings that require sleep mode
     and command to standby mode
     */
@@ -267,7 +264,7 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
         /* If there are frames to be transmitted */
         if (_tx_queue.size() > 0)
         {
-            /* Set DIO to cause TX_DONE interrupt */
+            /* Set DIO to allow TX_DONE interrupt */
             _radio->set(SX127xRadio::FLD_RDO_DIO0, 1);
 
             _radio->write_stngs(false);
@@ -275,7 +272,7 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
         }
         else
         {
-            /* Set DIO to cause RxDone, RxTimeout, ValidHeader interrupts */
+            /* Set DIO to allow RxDone, RxTimeout, ValidHeader interrupts */
             _radio->set(SX127xRadio::FLD_RDO_DIO0, 0);
             _radio->set(SX127xRadio::FLD_RDO_DIO1, 0);
             _radio->set(SX127xRadio::FLD_RDO_DIO3, 1);
@@ -377,7 +374,6 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_txing(uint32_t const evt_flags)
             /* enable_these */  SX127xRadio::LORA_IRQ_TX_DONE);
         _radio->write_lora_irq_flags(SX127xRadio::LORA_IRQ_TX_DONE);
         _radio->write_fifo_ptr(0x00);
-        _radio->write_op_mode(SX127xRadio::OP_MODE_RXCONT);
 
         // TODO: Wrap _tx_queue access with smphr?
         tx_data_t tx_data = _tx_queue.front();
@@ -398,9 +394,10 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_txing(uint32_t const evt_flags)
 }
 
 
-void HeyMacLayer::_evt_dio(sig_dio_t const sig_dio)
+/* Handler for the SX127xRadio callback for DIO signals */
+void HeyMacLayer::_evt_dio(SX127xRadio::sig_dio_t const sig_dio)
 {
-    static uint32_t const sig_to_evt_lut[] =
+    static uint32_t const sig_to_evt_lut[SX127xRadio::SIG_DIO_CNT] =
     {
         /* SIG_DIO_MODE_RDY */      EVT_DIO_MODE_RDY,
         /* SIG_DIO_CAD_DETECTED */  EVT_DIO_CAD_DETECTED,
@@ -415,10 +412,13 @@ void HeyMacLayer::_evt_dio(sig_dio_t const sig_dio)
         /* SIG_DIO_PAYLD_CRC_ERR */ EVT_DIO_PAYLD_CRC_ERR
     };
 
-    if (sig_dio < SIG_DIO_CNT)
-    {
-        _thread->flags_set(sig_to_evt_lut[sig_dio]);
-    }
+    MBED_ASSERT(sig_dio < SX127xRadio::SIG_DIO_CNT);
+
+    /*
+    Convert a DIO signal to an application event flag
+    and post the flag to this thread
+    */
+    _thread->flags_set(sig_to_evt_lut[sig_dio]);
 }
 
 
@@ -437,20 +437,3 @@ void HeyMacLayer::_tx_bcn(void)
     enq_tx_frame(frm);
 }
 
-
-void HeyMacLayer::_dump_buf(uint8_t const * const buf, uint8_t const sz)
-{
-    static char const hex[] = {"0123456789ABCDEF"};
-    uint8_t ch;
-
-    s_ser.putc('#');
-    s_ser.putc(' ');
-    for (int8_t i = 0; i < sz; i++ )
-    {
-        ch = buf[i];
-        s_ser.putc(hex[ch >> 4]);
-        s_ser.putc(hex[ch & 0x0F]);
-        s_ser.putc(' ');
-    }
-    s_ser.putc('\n');
-}
