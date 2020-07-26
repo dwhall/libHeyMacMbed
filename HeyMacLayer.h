@@ -55,8 +55,7 @@ private:
     SX127xRadio *_radio;
     HeyMacIdent *_hm_ident;
     sm_ret_t (HeyMacLayer::*_st_handler)(uint32_t const evt_flags);
-    list<tx_data_t> _tx_list;
-    queue<tx_data_t, list<tx_data_t>> _tx_queue;
+    deque<tx_data_t> _tx_queue;
 
     /** Runs this thread's main loop */
     void _main(void);

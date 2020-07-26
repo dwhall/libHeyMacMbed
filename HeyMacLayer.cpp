@@ -37,7 +37,7 @@
  */
 
 #include <stdint.h>
-#include <list>
+#include <deque>
 #include <queue>
 
 #include "mbed.h"
@@ -100,8 +100,7 @@ enum
 HeyMacLayer::HeyMacLayer(char const *cred_fn)
     :
     AThread(THRD_STACK_SZ, THRD_PRDC_MS, "HMLayer"),
-    _tx_list(list<tx_data_t>(HM_TX_QUEUE_CNT)),
-    _tx_queue(queue<tx_data_t, list<tx_data_t>>(_tx_list))
+    _tx_queue(deque<tx_data_t>(0))//HM_TX_QUEUE_CNT))
 {
     _hm_ident = new HeyMacIdent(cred_fn);
     _spi = new SPI
@@ -138,7 +137,7 @@ void HeyMacLayer::enq_tx_frame(HeyMacFrame *frm, uint32_t tx_time)
     tx_data.at_time_ms = tx_time;
     // TODO: tx_stngs
     // TODO: Wrap _tx_queue access with smphr?
-    _tx_queue.push(tx_data);
+    _tx_queue.push_back(tx_data);
 
     if (0/*ASAP*/ == tx_time) // TODO if (tx_time < now + 100ms prdc)
     {
@@ -262,12 +261,12 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
         // TODO: await mode ready?
 
         /* If there are frames to be transmitted */
-        if (_tx_queue.size() > 0)
+        if (!_tx_queue.empty())
         {
             /* Set DIO to allow TX_DONE interrupt */
             _radio->set(SX127xRadio::FLD_RDO_DIO0, 1);
-
             _radio->write_stngs(false);
+
             SM_TRAN(&HeyMacLayer::_st_txing);
         }
         else
@@ -276,8 +275,8 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_setting(uint32_t const evt_flags)
             _radio->set(SX127xRadio::FLD_RDO_DIO0, 0);
             _radio->set(SX127xRadio::FLD_RDO_DIO1, 0);
             _radio->set(SX127xRadio::FLD_RDO_DIO3, 1);
-
             _radio->write_stngs(true);
+
             SM_TRAN(&HeyMacLayer::_st_lstning);
         }
     }
@@ -377,7 +376,7 @@ HeyMacLayer::sm_ret_t HeyMacLayer::_st_txing(uint32_t const evt_flags)
 
         // TODO: Wrap _tx_queue access with smphr?
         tx_data_t tx_data = _tx_queue.front();
-        _tx_queue.pop();
+        _tx_queue.pop_front();
         HeyMacFrame *frm = tx_data.frm;
         _radio->write_fifo(frm->get_buf(), frm->get_buf_sz());
 

@@ -85,9 +85,9 @@ void SX127xRadio::init_radio(Callback<void(sig_dio_t const)> sig_dio_clbk)
     /* Issue pin reset to the radio (regs to init values) */
     _reset.output();
     _reset = 0;
-    ThisThread::sleep_for(1 /*ms*/);
+    ThisThread::sleep_for(1ms);
     _reset = 1;
-    ThisThread::sleep_for(6 /*ms*/);
+    ThisThread::sleep_for(6ms);
 
     _reset_rdo_stngs();
 
@@ -130,10 +130,8 @@ void SX127xRadio::set(fld_t const fld, uint32_t const val)
             /* If we hit this assert, the _stngs_info_lut[].reg_cnt is wrong for this fld */
             MBED_ASSERT(_stngs_info_lut[fld].reg_cnt == 1);
 
-            // TODO: create bit mask using .bit_cnt
-
-            /* Put the value in the stngs holding array.  We'll bit shift when writing to the register. */
-            _rdo_stngs[fld] = val;
+            /* Put the bit-limited value in the stngs holding array.  We'll bit shift when writing to the register. */
+            _rdo_stngs[fld] = val & BIT_FLD(0, _stngs_info_lut[fld].bit_cnt);
             break;
 
         /* Below this are special cases for settings that span a register boundary */
@@ -253,7 +251,8 @@ void SX127xRadio::write_stngs(bool for_rx)
             /* STNG_LORA_BW_250K  */ {    0, 0x40},
         };
 //FIXME:    MBED_STATIC_ASSERT(CNT_OF(freq_info_lut) == STNG_LORA_BW_CNT - 1);
-        if (_rdo_stngs[FLD_LORA_BW] == STNG_LORA_BW_500K)
+
+        if (_rdo_stngs[FLD_LORA_BW] >= STNG_LORA_BW_500K)
         {
             auto_if_on = true;
         }
@@ -291,24 +290,20 @@ void SX127xRadio::write_stngs(bool for_rx)
         _rdo_stngs_freq_applied = freq;
     }
 
-    /* Write typical, outstanding settings */
+    /* rmw typical settings if they've changed */
     for (fld = 0; fld < FLD_CNT; fld++)
     {
-        /* If the setting hasn't changed, skip it */
-        if (_rdo_stngs[fld] == _rdo_stngs_applied[fld])
+        if (_rdo_stngs[fld] != _rdo_stngs_applied[fld])
         {
-            continue;
+            _read(_stngs_info_lut[fld].reg_start, &reg);
+            bitf = BIT_FLD(_stngs_info_lut[fld].bit_start, _stngs_info_lut[fld].bit_cnt);
+            reg &= ~bitf;
+            reg |= (bitf & (_rdo_stngs[fld] << _stngs_info_lut[fld].bit_start));
+            _write(_stngs_info_lut[fld].reg_start, &reg);
+
+            /* Record what we have written */
+            _rdo_stngs_applied[fld] = _rdo_stngs[fld];
         }
-
-        /* rmw the setting into the register */
-        _read(_stngs_info_lut[fld].reg_start, &reg);
-        bitf = BIT_FLD(_stngs_info_lut[fld].bit_start, _stngs_info_lut[fld].bit_cnt);
-        reg &= ~bitf;
-        reg |= (bitf & (_rdo_stngs[fld] << _stngs_info_lut[fld].bit_start));
-        _write(_stngs_info_lut[fld].reg_start, &reg);
-
-        /* Record what we have written */
-        _rdo_stngs_applied[fld] = _rdo_stngs[fld];
     }
 }
 
